@@ -136,7 +136,6 @@ export default function FacilityDashboard() {
     setCsvFileName('')
     setNotes('')
     setSaving(false)
-    setTimeout(() => setSuccessMsg(''), 4000)
   }
 
   async function handleSignOut() {
@@ -161,7 +160,22 @@ export default function FacilityDashboard() {
         <h1 className={styles.pageTitle}>Upload HitTrax Session</h1>
         <p className={styles.pageSub}>Search for a player, upload their HitTrax CSV, and verify the session.</p>
 
-        {successMsg && <div className={styles.success}>{successMsg}</div>}
+        {successMsg && (
+          <div className={styles.success}>
+            <div>{successMsg}</div>
+            <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>
+              View session history in the Diamond IQ app →{' '}
+              <a
+                href="https://testflight.apple.com/join/diqbaseball"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'inherit', textDecoration: 'underline', fontWeight: 600 }}
+              >
+                Download on TestFlight
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* STEP 1 - Search Player */}
         <div className={styles.card}>
