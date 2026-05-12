@@ -1,65 +1,140 @@
-import Image from "next/image";
+'use client'
+import styles from './page.module.css'
+import Link from 'next/link'
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className={styles.main}>
+
+      {/* NAV */}
+      <nav className={styles.nav}>
+        <div className={styles.navLogo}>
+          <span className={styles.navLogoText}>Diamond IQ</span>
+          <span className={styles.navLogoBadge}>BASEBALL</span>
+        </div>
+        <div className={styles.navLinks}>
+          <Link href="/facility/login" className={styles.navLink}>Facility Portal</Link>
+          <Link href="#download" className={styles.navCta}>Download App</Link>
+        </div>
+      </nav>
+
+      {/* HERO */}
+      <section className={styles.hero}>
+        <div className={styles.heroGrid} />
+        <div className={styles.heroContent}>
+          <div className={styles.heroBadge}>Verified Recruiting Platform</div>
+          <h1 className={styles.heroTitle}>
+            Your Numbers.<br />
+            <span className={styles.heroTitleAccent}>Verified.</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className={styles.heroSub}>
+            Diamond IQ connects players with coaches, scouts, and facilities through verified measurables — not self-reported stats. Every number in your profile is confirmed by a certified facility.
           </p>
+          <div className={styles.heroCtas}>
+            <a href="#download" className={styles.btnPrimary}>Get the App</a>
+            <Link href="/facility/login" className={styles.btnSecondary}>Facility Portal</Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+        <div className={styles.heroStats}>
+          <div className={styles.heroStat}>
+            <span className={styles.heroStatNum}>100%</span>
+            <span className={styles.heroStatLbl}>Verified Data</span>
+          </div>
+          <div className={styles.heroStatDivider} />
+          <div className={styles.heroStat}>
+            <span className={styles.heroStatNum}>4</span>
+            <span className={styles.heroStatLbl}>User Roles</span>
+          </div>
+          <div className={styles.heroStatDivider} />
+          <div className={styles.heroStat}>
+            <span className={styles.heroStatNum}>DIQ</span>
+            <span className={styles.heroStatLbl}>Score System</span>
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className={styles.how} id="how">
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionLabel}>How It Works</div>
+          <h2 className={styles.sectionTitle}>Built for the Recruiting Process</h2>
+          <div className={styles.steps}>
+            <div className={styles.step}>
+              <div className={styles.stepNum}>01</div>
+              <div className={styles.stepIcon}>⚾</div>
+              <h3 className={styles.stepTitle}>Player Creates Profile</h3>
+              <p className={styles.stepBody}>Players build their profile with positions, stats, highlights, and contact info. Every account starts with a DIQ score.</p>
+            </div>
+            <div className={styles.stepArrow}>→</div>
+            <div className={styles.step}>
+              <div className={styles.stepNum}>02</div>
+              <div className={styles.stepIcon}>🏟️</div>
+              <h3 className={styles.stepTitle}>Facility Verifies Measurables</h3>
+              <p className={styles.stepBody}>Certified facilities log verified sessions — HitTrax, Rapsodo, Trackman. Metrics are locked and can't be edited by the player.</p>
+            </div>
+            <div className={styles.stepArrow}>→</div>
+            <div className={styles.step}>
+              <div className={styles.stepNum}>03</div>
+              <div className={styles.stepIcon}>🎓</div>
+              <h3 className={styles.stepTitle}>Coaches & Scouts Discover</h3>
+              <p className={styles.stepBody}>College coaches and scouts browse verified profiles, filter by position and metrics, and connect directly with players.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ROLES */}
+      <section className={styles.roles}>
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionLabel}>Who It's For</div>
+          <h2 className={styles.sectionTitle}>One Platform. Every Role.</h2>
+          <div className={styles.roleGrid}>
+            {[
+              { icon: '⚾', role: 'Players', desc: 'Build a verified profile, track your DIQ score, get discovered by college programs.' },
+              { icon: '🎓', role: 'Coaches', desc: 'Discover verified talent, manage your roster, log game stats, verify player performance.' },
+              { icon: '🔭', role: 'Scouts', desc: 'Browse the marketplace, verify measurables, build your pipeline of verified prospects.' },
+              { icon: '🏟️', role: 'Facilities', desc: 'Log verified sessions from HitTrax, Rapsodo, Trackman, and Blast. Upload directly from your PC.' },
+            ].map(({ icon, role, desc }) => (
+              <div key={role} className={styles.roleCard}>
+                <div className={styles.roleIcon}>{icon}</div>
+                <h3 className={styles.roleTitle}>{role}</h3>
+                <p className={styles.roleDesc}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* DOWNLOAD */}
+      <section className={styles.download} id="download">
+        <div className={styles.downloadInner}>
+          <div className={styles.sectionLabel} style={{ color: 'var(--gold)' }}>Available Now</div>
+          <h2 className={styles.downloadTitle}>Get Diamond IQ Baseball</h2>
+          <p className={styles.downloadSub}>Download on iOS and start building your verified recruiting profile today.</p>
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://testflight.apple.com/join/diqbaseball"
+            className={styles.btnDownload}
             target="_blank"
             rel="noopener noreferrer"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
+            🍎 Download on TestFlight
           </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          <p className={styles.downloadNote}>Currently in beta. Android coming soon.</p>
         </div>
-      </main>
-    </div>
-  );
+      </section>
+
+      {/* FOOTER */}
+      <footer className={styles.footer}>
+        <div className={styles.footerInner}>
+          <div className={styles.footerLogo}>Diamond IQ Baseball</div>
+          <div className={styles.footerLinks}>
+            <Link href="/facility/login">Facility Portal</Link>
+            <a href="mailto:kelly@destroyersbaseball.org">Contact</a>
+          </div>
+          <div className={styles.footerCopy}>© 2026 Diamond IQ Baseball. All rights reserved.</div>
+        </div>
+      </footer>
+
+    </main>
+  )
 }

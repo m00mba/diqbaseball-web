@@ -1,0 +1,267 @@
+'use client'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import styles from './dashboard.module.css'
+
+const HITTRAX_COLUMNS: Record<string, string> = {
+  avg: 'hittrax_avg', slg: 'hittrax_slg', avgla: 'launch_angle',
+  hha: 'hard_hit_avg', lph: 'lph', 'ld%': 'ld_pct', 'gb%': 'gb_pct',
+  'fb%': 'fb_pct', avgvel: 'avg_exit_velo', maxvel: 'exit_velo',
+  avgdist: 'distance', maxdist: 'max_distance',
+}
+
+function parseHitTraxCSV(csvText: string): Record<string, string> | null {
+  try {
+    const lines = csvText.split('\n').map(l => l.trim()).filter(Boolean)
+    function parseRow(line: string): string[] {
+      const result: string[] = []
+      let current = ''; let inQuotes = false
+      for (const ch of line) {
+        if (ch === '"') { inQuotes = !inQuotes }
+        else if (ch === ',' && !inQuotes) { result.push(current.trim()); current = '' }
+        else { current += ch }
+      }
+      result.push(current.trim())
+      return result
+    }
+    let headerIdx = -1
+    for (let i = 0; i < lines.length; i++) {
+      if (parseRow(lines[i])[0]?.toLowerCase().trim() === 'pitch') { headerIdx = i; break }
+    }
+    if (headerIdx === -1) return null
+    const headers = parseRow(lines[headerIdx]).map(h => h.toLowerCase().replace(/\s+/g, ''))
+    let totalRow: string[] | null = null
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const row = parseRow(lines[i])
+      if (row[0]?.toLowerCase().trim() === 'total') { totalRow = row; break }
+    }
+    if (!totalRow) return null
+
+    const result: Record<string, string> = {}
+    for (const [csvKey, dbKey] of Object.entries(HITTRAX_COLUMNS)) {
+      const idx = headers.findIndex(h => h === csvKey)
+      if (idx !== -1 && totalRow[idx]) {
+        result[dbKey] = totalRow[idx].replace('%', '').trim()
+      }
+    }
+    return Object.keys(result).length > 0 ? result : null
+  } catch { return null }
+}
+
+export default function FacilityDashboard() {
+  const router = useRouter()
+  const [facilityProfile, setFacilityProfile] = useState<any>(null)
+  const [search, setSearch] = useState('')
+  const [players, setPlayers] = useState<any[]>([])
+  const [searching, setSearching] = useState(false)
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null)
+  const [csvData, setCsvData] = useState<Record<string, string> | null>(null)
+  const [csvFileName, setCsvFileName] = useState('')
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [successMsg, setSuccessMsg] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) { router.push('/facility/login'); return }
+      const { data: fp } = await supabase
+        .from('facility_profiles')
+        .select('*')
+        .eq('user_id', data.user.id)
+        .single()
+      if (!fp) { router.push('/facility/login'); return }
+      setFacilityProfile(fp)
+    })
+  }, [router])
+
+    async function searchPlayers() {
+      if (!search.trim()) return
+      setSearching(true)
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, player_profiles(id, grad_year, positions, state)')
+        .ilike('name', `%${search}%`)
+        .eq('role', 'player')
+        .limit(10)
+      console.log('search result:', JSON.stringify(data), 'error:', error)
+      const results = (data ?? []).filter((u: any) => u.player_profiles).map((u: any) => {
+        const pp = Array.isArray(u.player_profiles) ? u.player_profiles[0] : u.player_profiles
+        const pos = Array.isArray(pp?.positions) ? pp.positions[0] : pp?.positions
+        return { id: pp?.id, user_id: u.id, name: u.name, grad_year: pp?.grad_year, primary_position: pos, state: pp?.state }
+      })
+      setPlayers(results)
+      setSearching(false)
+    }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCsvFileName(file.name)
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string
+      const parsed = parseHitTraxCSV(text)
+      if (!parsed) {
+        alert('Could not parse HitTrax CSV. Make sure the file includes a header row and Total row.')
+        return
+      }
+      setCsvData(parsed)
+    }
+    reader.readAsText(file)
+  }
+
+  async function handleVerify() {
+    if (!selectedPlayer || !csvData || !facilityProfile) return
+    setSaving(true)
+    const { data: userData } = await supabase.auth.getUser()
+
+    const payload = {
+      player_id: selectedPlayer.id,
+      facility_id: facilityProfile.id,
+      verified_by: userData.user!.id,
+      equipment: 'HitTrax',
+      notes: notes || null,
+      verified_at: new Date().toISOString(),
+      ...csvData,
+    }
+
+    const { error } = await supabase.from('verified_measurables').insert(payload)
+    if (error) { alert('Error saving session: ' + error.message); setSaving(false); return }
+
+    setSuccessMsg(`✅ Session verified for ${selectedPlayer.name}`)
+    setSelectedPlayer(null)
+    setCsvData(null)
+    setCsvFileName('')
+    setNotes('')
+    setSaving(false)
+    setTimeout(() => setSuccessMsg(''), 4000)
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    router.push('/facility/login')
+  }
+
+  const fieldCount = csvData ? Object.keys(csvData).length : 0
+
+  return (
+    <div className={styles.page}>
+      {/* HEADER */}
+      <header className={styles.header}>
+        <div className={styles.headerLeft}>
+          <span className={styles.headerLogo}>Diamond IQ</span>
+          <span className={styles.headerSub}>{facilityProfile?.name ?? 'Facility Portal'}</span>
+        </div>
+        <button onClick={handleSignOut} className={styles.signOutBtn}>Sign Out</button>
+      </header>
+
+      <div className={styles.content}>
+        <h1 className={styles.pageTitle}>Upload HitTrax Session</h1>
+        <p className={styles.pageSub}>Search for a player, upload their HitTrax CSV, and verify the session.</p>
+
+        {successMsg && <div className={styles.success}>{successMsg}</div>}
+
+        {/* STEP 1 - Search Player */}
+        <div className={styles.card}>
+          <div className={styles.cardStep}>01</div>
+          <h2 className={styles.cardTitle}>Find Player</h2>
+          <div className={styles.searchRow}>
+            <input
+              className={styles.input}
+              placeholder="Search by player name..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && searchPlayers()}
+            />
+            <button className={styles.searchBtn} onClick={searchPlayers} disabled={searching}>
+              {searching ? 'Searching...' : 'Search'}
+            </button>
+          </div>
+          {players.length > 0 && (
+            <div className={styles.playerList}>
+              {players.map(p => (
+                <button
+                  key={p.id}
+                  className={`${styles.playerRow} ${selectedPlayer?.id === p.id ? styles.playerRowSelected : ''}`}
+                  onClick={() => setSelectedPlayer(p)}
+                >
+                  <div className={styles.playerInfo}>
+                    <span className={styles.playerName}>{p.name}</span>
+                    <span className={styles.playerMeta}>{p.primary_position} · Class of {p.grad_year} · {p.state}</span>
+                  </div>
+                  {selectedPlayer?.id === p.id && <span className={styles.checkmark}>✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+          {selectedPlayer && (
+            <div className={styles.selectedBadge}>
+              Selected: <strong>{selectedPlayer.name}</strong>
+            </div>
+          )}
+        </div>
+
+        {/* STEP 2 - Upload CSV */}
+        <div className={styles.card}>
+          <div className={styles.cardStep}>02</div>
+          <h2 className={styles.cardTitle}>Upload HitTrax CSV</h2>
+          <p className={styles.cardHint}>In HitTrax: Reports → Trend Analysis → Export → CSV. The file should include a Total row.</p>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+          />
+          <button className={styles.uploadBtn} onClick={() => fileRef.current?.click()}>
+            📂 Choose CSV File
+          </button>
+          {csvFileName && (
+            <div className={styles.csvStatus}>
+              <span className={styles.csvFile}>📄 {csvFileName}</span>
+              {csvData
+                ? <span className={styles.csvOk}>✅ {fieldCount} metrics loaded</span>
+                : <span className={styles.csvErr}>❌ Could not parse file</span>
+              }
+            </div>
+          )}
+          {csvData && (
+            <div className={styles.metricsPreview}>
+              {Object.entries(csvData).map(([key, val]) => (
+                <div key={key} className={styles.metricChip}>
+                  <span className={styles.metricKey}>{key.replace(/_/g, ' ')}</span>
+                  <span className={styles.metricVal}>{val}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* STEP 3 - Notes & Verify */}
+        <div className={styles.card}>
+          <div className={styles.cardStep}>03</div>
+          <h2 className={styles.cardTitle}>Notes & Verify</h2>
+          <textarea
+            className={styles.textarea}
+            placeholder="Optional notes (e.g. machine calibration issues, conditions, bat used...)"
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            rows={3}
+          />
+          <button
+            className={styles.verifyBtn}
+            onClick={handleVerify}
+            disabled={!selectedPlayer || !csvData || saving}
+          >
+            {saving ? 'Saving...' : '✓ Verify Session'}
+          </button>
+          {(!selectedPlayer || !csvData) && (
+            <p className={styles.verifyHint}>Complete steps 1 and 2 to verify.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

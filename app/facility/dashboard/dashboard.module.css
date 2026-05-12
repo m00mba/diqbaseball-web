@@ -1,0 +1,361 @@
+.page {
+  min-height: 100vh;
+  background: var(--gray-light);
+}
+
+.header {
+  background: var(--navy);
+  padding: 0 40px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.headerLogo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.headerSub {
+  font-size: 13px;
+  color: rgba(248, 248, 246, 0.5);
+  font-weight: 400;
+}
+
+.signOutBtn {
+  font-size: 13px;
+  color: rgba(248, 248, 246, 0.6);
+  background: transparent;
+  border: 1px solid rgba(248, 248, 246, 0.2);
+  padding: 6px 16px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.signOutBtn:hover {
+  color: var(--white);
+  border-color: rgba(248, 248, 246, 0.5);
+}
+
+.content {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.pageTitle {
+  font-size: 40px;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+
+.pageSub {
+  font-size: 15px;
+  color: var(--gray);
+  margin-bottom: 32px;
+}
+
+.success {
+  background: rgba(39, 80, 10, 0.1);
+  border: 1px solid rgba(39, 80, 10, 0.3);
+  border-left: 4px solid #27500A;
+  color: #27500A;
+  padding: 14px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+
+.card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(4, 44, 83, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.cardStep {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 80px;
+  font-weight: 900;
+  color: rgba(4, 44, 83, 0.05);
+  position: absolute;
+  top: 8px;
+  right: 20px;
+  line-height: 1;
+}
+
+.cardTitle {
+  font-size: 22px;
+  color: var(--navy);
+  margin-bottom: 16px;
+}
+
+.cardHint {
+  font-size: 13px;
+  color: var(--gray);
+  margin-bottom: 16px;
+  line-height: 1.5;
+  background: rgba(200, 169, 110, 0.1);
+  border-left: 3px solid var(--gold);
+  padding: 10px 14px;
+  border-radius: 0 6px 6px 0;
+}
+
+.searchRow {
+  display: flex;
+  gap: 10px;
+}
+
+.input {
+  flex: 1;
+  border: 1.5px solid rgba(4, 44, 83, 0.15);
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 15px;
+  color: var(--navy);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  border-color: var(--navy);
+}
+
+.searchBtn {
+  background: var(--navy);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  padding: 11px 24px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.searchBtn:hover:not(:disabled) {
+  background: var(--navy-light);
+}
+
+.searchBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.playerList {
+  margin-top: 12px;
+  border: 1px solid rgba(4, 44, 83, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.playerRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--white);
+  border: none;
+  border-bottom: 1px solid rgba(4, 44, 83, 0.06);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.playerRow:last-child {
+  border-bottom: none;
+}
+
+.playerRow:hover {
+  background: var(--gray-light);
+}
+
+.playerRowSelected {
+  background: rgba(4, 44, 83, 0.04) !important;
+}
+
+.playerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.playerName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.playerMeta {
+  font-size: 12px;
+  color: var(--gray);
+}
+
+.checkmark {
+  font-size: 16px;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.selectedBadge {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--navy);
+  background: rgba(4, 44, 83, 0.06);
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.uploadBtn {
+  background: var(--gray-light);
+  color: var(--navy);
+  border: 2px dashed rgba(4, 44, 83, 0.2);
+  border-radius: 8px;
+  padding: 16px 28px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.uploadBtn:hover {
+  background: rgba(4, 44, 83, 0.05);
+  border-color: var(--navy);
+}
+
+.csvStatus {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: var(--gray-light);
+}
+
+.csvFile {
+  font-size: 13px;
+  color: var(--navy);
+  font-weight: 500;
+}
+
+.csvOk {
+  font-size: 13px;
+  color: #27500A;
+  font-weight: 500;
+}
+
+.csvErr {
+  font-size: 13px;
+  color: var(--red);
+  font-weight: 500;
+}
+
+.metricsPreview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.metricChip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(4, 44, 83, 0.05);
+  border: 1px solid rgba(4, 44, 83, 0.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.metricKey {
+  font-size: 11px;
+  color: var(--gray);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metricVal {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.textarea {
+  width: 100%;
+  border: 1.5px solid rgba(4, 44, 83, 0.15);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--navy);
+  resize: vertical;
+  outline: none;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+  line-height: 1.5;
+}
+
+.textarea:focus {
+  border-color: var(--navy);
+}
+
+.verifyBtn {
+  background: var(--navy);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  padding: 14px 32px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.verifyBtn:hover:not(:disabled) {
+  background: var(--navy-light);
+}
+
+.verifyBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.verifyHint {
+  font-size: 12px;
+  color: var(--gray);
+  text-align: center;
+  margin-top: 10px;
+}
+
+@media (max-width: 600px) {
+  .header { padding: 0 16px; }
+  .content { padding: 24px 16px; }
+  .card { padding: 24px 16px; }
+  .searchRow { flex-direction: column; }
+}
