@@ -1,0 +1,274 @@
+.page {
+  min-height: 100vh;
+  background: var(--gray-light);
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 15px;
+  color: var(--gray);
+}
+
+.header {
+  background: var(--navy);
+  padding: 0 40px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.headerLogo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.headerSub {
+  font-size: 13px;
+  color: rgba(248, 248, 246, 0.5);
+}
+
+.headerNav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.navLink {
+  font-size: 13px;
+  color: rgba(248, 248, 246, 0.7);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.navLink:hover {
+  color: var(--white);
+}
+
+.signOutBtn {
+  font-size: 13px;
+  color: rgba(248, 248, 246, 0.6);
+  background: transparent;
+  border: 1px solid rgba(248, 248, 246, 0.2);
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.signOutBtn:hover {
+  color: var(--white);
+  border-color: rgba(248, 248, 246, 0.5);
+}
+
+.content {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.pageTitle {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 40px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+
+.pageSub {
+  font-size: 15px;
+  color: var(--gray);
+  margin-bottom: 32px;
+}
+
+.success {
+  background: rgba(39, 80, 10, 0.1);
+  border: 1px solid rgba(39, 80, 10, 0.3);
+  border-left: 4px solid #27500A;
+  color: #27500A;
+  padding: 14px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 28px;
+  border: 1px solid rgba(4, 44, 83, 0.08);
+}
+
+.cardTitle {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--navy);
+  margin-bottom: 20px;
+}
+
+.cardHint {
+  font-size: 13px;
+  color: var(--gray);
+  margin-bottom: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.fieldRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.fieldRow .field {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.fieldSmall {
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+
+.input {
+  border: 1.5px solid rgba(4, 44, 83, 0.15);
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 15px;
+  color: var(--navy);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: 'Barlow', sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  border-color: var(--navy);
+}
+
+.textarea {
+  border: 1.5px solid rgba(4, 44, 83, 0.15);
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 15px;
+  color: var(--navy);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: 'Barlow', sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.textarea:focus {
+  border-color: var(--navy);
+}
+
+.equipmentGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.equipChip {
+  border: 1.5px solid rgba(4, 44, 83, 0.2);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--navy);
+  background: var(--white);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Barlow', sans-serif;
+}
+
+.equipChip:hover {
+  border-color: var(--navy);
+  background: rgba(4, 44, 83, 0.04);
+}
+
+.equipChipActive {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--white);
+}
+
+.saveBtn {
+  background: var(--navy);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+}
+
+.saveBtn:hover:not(:disabled) {
+  background: var(--navy-light);
+}
+
+.saveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .header { padding: 0 16px; }
+  .headerNav { gap: 12px; }
+  .content { padding: 24px 16px; }
+  .card { padding: 20px 16px; }
+}

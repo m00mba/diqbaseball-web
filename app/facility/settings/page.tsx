@@ -1,0 +1,193 @@
+'use client'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import styles from './settings.module.css'
+
+const ALL_EQUIPMENT = ['HitTrax', 'Rapsodo', 'Trackman', 'Blast Motion', 'Yakkertech', 'FlightScope', 'Other']
+
+export default function FacilitySettings() {
+  const router = useRouter()
+  const [facilityProfile, setFacilityProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [successMsg, setSuccessMsg] = useState('')
+
+  // Form fields
+  const [name, setName] = useState('')
+  const [city, setCity] = useState('')
+  const [state, setState] = useState('NC')
+  const [address, setAddress] = useState('')
+  const [bio, setBio] = useState('')
+  const [equipment, setEquipment] = useState<string[]>([])
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) { router.push('/facility/login'); return }
+
+      const { data: fp } = await supabase
+        .from('facility_profiles')
+        .select('*')
+        .eq('user_id', data.user.id)
+        .single()
+
+      if (!fp) { router.push('/facility/login'); return }
+
+      setFacilityProfile(fp)
+      setName(fp.name ?? '')
+      setCity(fp.city ?? '')
+      setState(fp.state ?? 'NC')
+      setAddress(fp.address ?? '')
+      setBio(fp.bio ?? '')
+      setEquipment(fp.equipment ?? [])
+      setLoading(false)
+    })
+  }, [router])
+
+  function toggleEquipment(item: string) {
+    setEquipment(prev =>
+      prev.includes(item) ? prev.filter(e => e !== item) : [...prev, item]
+    )
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) { alert('Facility name is required'); return }
+    setSaving(true)
+
+    const { error } = await supabase
+      .from('facility_profiles')
+      .update({ name, city, state, address, bio, equipment })
+      .eq('id', facilityProfile.id)
+
+    if (error) {
+      alert('Error saving: ' + error.message)
+      setSaving(false)
+      return
+    }
+
+    setSuccessMsg('✅ Profile updated successfully')
+    setSaving(false)
+    setTimeout(() => setSuccessMsg(''), 3000)
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    router.push('/facility/login')
+  }
+
+  if (loading) return (
+    <div className={styles.page}>
+      <div className={styles.loading}>Loading...</div>
+    </div>
+  )
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.headerLeft}>
+          <span className={styles.headerLogo}>Diamond IQ</span>
+          <span className={styles.headerSub}>{facilityProfile?.name ?? 'Facility Portal'}</span>
+        </div>
+        <div className={styles.headerNav}>
+          <a href="/facility/dashboard" className={styles.navLink}>📂 Upload Sessions</a>
+          <button onClick={handleSignOut} className={styles.signOutBtn}>Sign Out</button>
+        </div>
+      </header>
+
+      <div className={styles.content}>
+        <h1 className={styles.pageTitle}>Facility Settings</h1>
+        <p className={styles.pageSub}>Update your facility profile information.</p>
+
+        {successMsg && <div className={styles.success}>{successMsg}</div>}
+
+        <form onSubmit={handleSave} className={styles.form}>
+          {/* Basic Info */}
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Basic Information</h2>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Facility Name *</label>
+              <input
+                className={styles.input}
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Diamond Edge Training"
+                required
+              />
+            </div>
+
+            <div className={styles.fieldRow}>
+              <div className={styles.field}>
+                <label className={styles.label}>City</label>
+                <input
+                  className={styles.input}
+                  value={city}
+                  onChange={e => setCity(e.target.value)}
+                  placeholder="Charlotte"
+                />
+              </div>
+              <div className={styles.fieldSmall}>
+                <label className={styles.label}>State</label>
+                <input
+                  className={styles.input}
+                  value={state}
+                  onChange={e => setState(e.target.value)}
+                  placeholder="NC"
+                  maxLength={2}
+                />
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Address</label>
+              <input
+                className={styles.input}
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+                placeholder="123 Baseball Blvd"
+              />
+            </div>
+          </div>
+
+          {/* Bio */}
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>About Your Facility</h2>
+            <div className={styles.field}>
+              <label className={styles.label}>Bio</label>
+              <textarea
+                className={styles.textarea}
+                value={bio}
+                onChange={e => setBio(e.target.value)}
+                placeholder="Tell players and coaches about your facility, specialties, and what makes you unique..."
+                rows={4}
+              />
+            </div>
+          </div>
+
+          {/* Equipment */}
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Equipment</h2>
+            <p className={styles.cardHint}>Select all equipment available at your facility.</p>
+            <div className={styles.equipmentGrid}>
+              {ALL_EQUIPMENT.map(item => (
+                <button
+                  key={item}
+                  type="button"
+                  className={`${styles.equipChip} ${equipment.includes(item) ? styles.equipChipActive : ''}`}
+                  onClick={() => toggleEquipment(item)}
+                >
+                  {equipment.includes(item) ? '✓ ' : ''}{item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button type="submit" className={styles.saveBtn} disabled={saving}>
+            {saving ? 'Saving...' : '✓ Save Changes'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}

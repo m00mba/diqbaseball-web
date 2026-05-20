@@ -76,17 +76,24 @@ export default function FacilityDashboard() {
     })
   }, [router])
 
-  async function searchPlayers() {
-    if (!search.trim()) return
-    setSearching(true)
-    const { data } = await supabase
-      .from('player_profiles')
-      .select('id, name, graduation_year, primary_position, city, state, avatar_url')
-      .ilike('name', `%${search}%`)
-      .limit(10)
-    setPlayers(data ?? [])
-    setSearching(false)
-  }
+    async function searchPlayers() {
+      if (!search.trim()) return
+      setSearching(true)
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, player_profiles(id, grad_year, positions, state)')
+        .ilike('name', `%${search}%`)
+        .eq('role', 'player')
+        .limit(10)
+      console.log('search result:', JSON.stringify(data), 'error:', error)
+      const results = (data ?? []).filter((u: any) => u.player_profiles).map((u: any) => {
+        const pp = Array.isArray(u.player_profiles) ? u.player_profiles[0] : u.player_profiles
+        const pos = Array.isArray(pp?.positions) ? pp.positions[0] : pp?.positions
+        return { id: pp?.id, user_id: u.id, name: u.name, grad_year: pp?.grad_year, primary_position: pos, state: pp?.state }
+      })
+      setPlayers(results)
+      setSearching(false)
+    }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -115,7 +122,6 @@ export default function FacilityDashboard() {
       facility_id: facilityProfile.id,
       verified_by: userData.user!.id,
       equipment: 'HitTrax',
-      session_type: 'hitting',
       notes: notes || null,
       verified_at: new Date().toISOString(),
       ...csvData,
@@ -130,7 +136,6 @@ export default function FacilityDashboard() {
     setCsvFileName('')
     setNotes('')
     setSaving(false)
-    setTimeout(() => setSuccessMsg(''), 4000)
   }
 
   async function handleSignOut() {
@@ -148,17 +153,29 @@ export default function FacilityDashboard() {
           <span className={styles.headerLogo}>Diamond IQ</span>
           <span className={styles.headerSub}>{facilityProfile?.name ?? 'Facility Portal'}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <a href="/facility/settings" style={{ fontSize: '13px', color: 'rgba(248,248,246,0.7)', textDecoration: 'none' }}>⚙️ Settings</a>
-          <button onClick={handleSignOut} className={styles.signOutBtn}>Sign Out</button>
-        </div>
+        <button onClick={handleSignOut} className={styles.signOutBtn}>Sign Out</button>
       </header>
 
       <div className={styles.content}>
         <h1 className={styles.pageTitle}>Upload HitTrax Session</h1>
         <p className={styles.pageSub}>Search for a player, upload their HitTrax CSV, and verify the session.</p>
 
-        {successMsg && <div className={styles.success}>{successMsg}</div>}
+        {successMsg && (
+          <div className={styles.success}>
+            <div>{successMsg}</div>
+            <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>
+              View session history in the Diamond IQ app →{' '}
+              <a
+                href="https://testflight.apple.com/join/diqbaseball"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'inherit', textDecoration: 'underline', fontWeight: 600 }}
+              >
+                Download on TestFlight
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* STEP 1 - Search Player */}
         <div className={styles.card}>
@@ -186,7 +203,7 @@ export default function FacilityDashboard() {
                 >
                   <div className={styles.playerInfo}>
                     <span className={styles.playerName}>{p.name}</span>
-                    <span className={styles.playerMeta}>{p.primary_position} · Class of {p.graduation_year} · {p.city}, {p.state}</span>
+                    <span className={styles.playerMeta}>{p.primary_position} · Class of {p.grad_year} · {p.state}</span>
                   </div>
                   {selectedPlayer?.id === p.id && <span className={styles.checkmark}>✓</span>}
                 </button>
