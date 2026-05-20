@@ -51,6 +51,7 @@ export default function FacilitySessions() {
   const [compareSession, setCompareSession] = useState<Session | null>(null)
   const [playerSessions, setPlayerSessions] = useState<Session[]>([])
   const [aiReport, setAiReport] = useState<string | null>(null)
+  const [aiReportDate, setAiReportDate] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [editNotes, setEditNotes] = useState('')
@@ -114,8 +115,10 @@ export default function FacilitySessions() {
   async function openSession(session: Session) {
     setSelectedSession(session)
     setAiReport(null)
+    setAiReportDate(null)
     setEditNotes(session.notes ?? '')
 
+    // Load other sessions for this player at this facility
     const { data } = await supabase
       .from('verified_measurables')
       .select('*')
@@ -126,6 +129,19 @@ export default function FacilitySessions() {
 
     setPlayerSessions(data ?? [])
     setCompareSession(null)
+
+    // Load saved AI report for this player
+    const { data: noteData } = await supabase
+      .from('facility_player_notes')
+      .select('report, report_generated_at')
+      .eq('facility_id', facilityProfile.id)
+      .eq('player_id', session.player_id)
+      .single()
+
+    if (noteData?.report) {
+      setAiReport(noteData.report)
+      setAiReportDate(noteData.report_generated_at)
+    }
   }
 
   async function saveNotes() {
@@ -155,6 +171,7 @@ export default function FacilitySessions() {
     if (!selectedSession) return
     setAiLoading(true)
     setAiReport(null)
+    setAiReportDate(null)
 
     const metrics = Object.entries(METRIC_LABELS)
       .filter(([key]) => selectedSession[key] != null)
@@ -183,7 +200,23 @@ export default function FacilitySessions() {
         })
       })
       const data = await response.json()
-      setAiReport(data.content?.[0]?.text ?? 'Could not generate report.')
+      const reportText = data.content?.[0]?.text ?? 'Could not generate report.'
+      const generatedAt = new Date().toISOString()
+
+      setAiReport(reportText)
+      setAiReportDate(generatedAt)
+
+      // Save report to facility_player_notes
+      await supabase
+        .from('facility_player_notes')
+        .upsert({
+          facility_id: facilityProfile.id,
+          player_id: selectedSession.player_id,
+          report: reportText,
+          report_generated_at: generatedAt,
+          updated_at: generatedAt,
+        }, { onConflict: 'facility_id,player_id' })
+
     } catch {
       setAiReport('Error generating report. Please try again.')
     } finally {
@@ -310,6 +343,7 @@ export default function FacilitySessions() {
                         const s = playerSessions.find(p => p.id === e.target.value)
                         setCompareSession(s ?? null)
                         setAiReport(null)
+                        setAiReportDate(null)
                       }}
                     >
                       <option value="">Single session analysis</option>
@@ -334,6 +368,11 @@ export default function FacilitySessions() {
 
                 {aiReport && (
                   <div className={styles.aiReport}>
+                    {aiReportDate && (
+                      <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>
+                        Generated {new Date(aiReportDate).toLocaleDateString()}
+                      </div>
+                    )}
                     <p>{aiReport}</p>
                   </div>
                 )}

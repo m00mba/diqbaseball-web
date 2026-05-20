@@ -61,11 +61,27 @@ export default function FacilitySessions() {
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/facility/login'); return }
-      const { data: fp } = await supabase
-        .from('facility_profiles')
-        .select('*')
-        .eq('user_id', data.user.id)
+      const userId = data.user.id
+
+      // Check staff first
+      const { data: staffLink } = await supabase
+        .from('facility_users')
+        .select('*, facility:facility_profiles(*)')
+        .eq('user_id', userId)
         .single()
+
+      let fp: any = staffLink?.facility ?? null
+
+      // Fall back to owner
+      if (!fp) {
+        const { data: owned } = await supabase
+          .from('facility_profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .single()
+        fp = owned
+      }
+
       if (!fp) { router.push('/facility/login'); return }
       setFacilityProfile(fp)
       loadSessions(fp.id)
@@ -100,7 +116,6 @@ export default function FacilitySessions() {
     setAiReport(null)
     setEditNotes(session.notes ?? '')
 
-    // Load other sessions for this player at this facility
     const { data } = await supabase
       .from('verified_measurables')
       .select('*')
@@ -160,16 +175,10 @@ export default function FacilitySessions() {
       : `You are a professional baseball development coach. Analyze this HitTrax session for ${selectedSession.player_name} at ${facilityProfile?.name}. Write a concise 3-4 sentence analysis in third-person covering what the numbers indicate about their current skill level and development opportunities. Be specific and reference actual metrics.\n\nSession (${new Date(selectedSession.verified_at).toLocaleDateString()}):\n${metrics}\n${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/analyze', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_ANTHROPIC_KEY ?? '',
-          'anthropic-version': '2023-06-01',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 400,
           messages: [{ role: 'user', content: prompt }]
         })
       })
@@ -210,7 +219,6 @@ export default function FacilitySessions() {
       </header>
 
       <div className={styles.layout}>
-        {/* Session List */}
         <div className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
             <h2 className={styles.sidebarTitle}>Session History</h2>
@@ -245,7 +253,6 @@ export default function FacilitySessions() {
           )}
         </div>
 
-        {/* Session Detail */}
         <div className={styles.main}>
           {!selectedSession ? (
             <div className={styles.emptyState}>
@@ -269,7 +276,6 @@ export default function FacilitySessions() {
                 </button>
               </div>
 
-              {/* Metrics Grid */}
               <div className={styles.metricsGrid}>
                 {sessionMetrics(selectedSession).map(({ key, label, value, unit }) => (
                   <div key={key} className={styles.metricCard}>
@@ -279,7 +285,6 @@ export default function FacilitySessions() {
                 ))}
               </div>
 
-              {/* Notes */}
               <div className={styles.section}>
                 <h3 className={styles.sectionTitle}>Session Notes</h3>
                 <textarea
@@ -294,7 +299,6 @@ export default function FacilitySessions() {
                 </button>
               </div>
 
-              {/* AI Analysis */}
               <div className={styles.section}>
                 <div className={styles.aiHeader}>
                   <h3 className={styles.sectionTitle}>⚡ AI Analysis</h3>
