@@ -27,26 +27,12 @@ export default function FacilitySettings() {
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/facility/login'); return }
-      const userId = data.user.id
 
-      // Check staff first
-      const { data: staffLink } = await supabase
-        .from('facility_users')
-        .select('*, facility:facility_profiles(*)')
-        .eq('user_id', userId)
+      const { data: fp } = await supabase
+        .from('facility_profiles')
+        .select('*')
+        .eq('user_id', data.user.id)
         .single()
-
-      let fp: any = staffLink?.facility ?? null
-
-      // Fall back to owner
-      if (!fp) {
-        const { data: owned } = await supabase
-          .from('facility_profiles')
-          .select('*')
-          .eq('user_id', userId)
-          .single()
-        fp = owned
-      }
 
       if (!fp) { router.push('/facility/login'); return }
 
@@ -111,6 +97,7 @@ export default function FacilitySettings() {
   async function inviteStaff() {
     if (!inviteEmail.trim()) return
     setInviting(true)
+    // Check if user exists
     const { data: existing } = await supabase
       .from('users')
       .select('id, name')
@@ -123,6 +110,7 @@ export default function FacilitySettings() {
       return
     }
 
+    // Link them to this facility
     const { error } = await supabase
       .from('facility_users')
       .upsert({ facility_id: facilityProfile.id, user_id: existing.id, role: 'staff' },
@@ -269,7 +257,7 @@ export default function FacilitySettings() {
           <div className={styles.card} style={{ marginTop: 0 }}>
             <h2 className={styles.cardTitle}>Staff Access</h2>
             <p className={styles.cardHint}>Add staff members who can log sessions from this facility. They need an existing Diamond IQ account.</p>
-
+            
             {staff.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 {staff.map((s: any) => (

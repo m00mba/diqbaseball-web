@@ -66,27 +66,11 @@ export default function FacilityDashboard() {
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/facility/login'); return }
-      const userId = data.user.id
-
-      // Check staff first
-      const { data: staffLink } = await supabase
-        .from('facility_users')
-        .select('*, facility:facility_profiles(*)')
-        .eq('user_id', userId)
+      const { data: fp } = await supabase
+        .from('facility_profiles')
+        .select('*')
+        .eq('user_id', data.user.id)
         .single()
-
-      let fp: any = staffLink?.facility ?? null
-
-      // Fall back to owner
-      if (!fp) {
-        const { data: owned } = await supabase
-          .from('facility_profiles')
-          .select('*')
-          .eq('user_id', userId)
-          .single()
-        fp = owned
-      }
-
       if (!fp) { router.push('/facility/login'); return }
       setFacilityProfile(fp)
     })
@@ -137,6 +121,7 @@ export default function FacilityDashboard() {
       facility_id: facilityProfile.id,
       verified_by: userData.user!.id,
       equipment: 'HitTrax',
+      
       notes: notes || null,
       verified_at: new Date().toISOString(),
       ...csvData,
