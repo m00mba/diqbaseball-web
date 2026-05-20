@@ -155,7 +155,6 @@ export default function FacilityDashboard() {
           <span className={styles.headerSub}>{facilityProfile?.name ?? 'Facility Portal'}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <a href="/facility/sessions" style={{ fontSize: '13px', color: 'rgba(248,248,246,0.7)', textDecoration: 'none' }}>📋 Sessions</a>
           <a href="/facility/settings" style={{ fontSize: '13px', color: 'rgba(248,248,246,0.7)', textDecoration: 'none' }}>⚙️ Settings</a>
           <button onClick={handleSignOut} className={styles.signOutBtn}>Sign Out</button>
         </div>

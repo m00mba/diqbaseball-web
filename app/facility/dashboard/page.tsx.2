@@ -77,23 +77,22 @@ export default function FacilityDashboard() {
   }, [router])
 
   async function searchPlayers() {
-    if (!search.trim()) return
-    setSearching(true)
-    const { data } = await supabase
-      .from('users')
-      .select('id, name, player_profiles(id, grad_year, positions, state)')
-      .ilike('name', `%${search}%`)
-      .eq('role', 'player')
-      .limit(10)
-    const results = (data ?? []).filter((u: any) => u.player_profiles).map((u: any) => {
-      const pp = Array.isArray(u.player_profiles) ? u.player_profiles[0] : u.player_profiles
-      const pos = Array.isArray(pp?.positions) ? pp.positions[0] : pp?.positions
-      return { id: pp?.id, user_id: u.id, name: u.name, grad_year: pp?.grad_year, primary_position: pos, state: pp?.state }
-    })
-    setPlayers(results)
-    setSearching(false)
-  }
-
+  if (!search.trim()) return
+  setSearching(true)
+  const { data } = await supabase
+    .from('users')
+    .select('id, name, player_profiles(id, grad_year, positions, state)')
+    .ilike('name', `%${search}%`)
+    .eq('role', 'player')
+    .limit(10)
+  const results = (data ?? []).filter((u: any) => u.player_profiles).map((u: any) => {
+    const pp = Array.isArray(u.player_profiles) ? u.player_profiles[0] : u.player_profiles
+    const pos = Array.isArray(pp?.positions) ? pp.positions[0] : pp?.positions
+    return { id: pp?.id, user_id: u.id, name: u.name, grad_year: pp?.grad_year, primary_position: pos, state: pp?.state }
+  })
+  setPlayers(results)
+  setSearching(false)
+}
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -121,7 +120,7 @@ export default function FacilityDashboard() {
       facility_id: facilityProfile.id,
       verified_by: userData.user!.id,
       equipment: 'HitTrax',
-      
+      session_type: 'hitting',
       notes: notes || null,
       verified_at: new Date().toISOString(),
       ...csvData,
@@ -155,7 +154,6 @@ export default function FacilityDashboard() {
           <span className={styles.headerSub}>{facilityProfile?.name ?? 'Facility Portal'}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <a href="/facility/sessions" style={{ fontSize: '13px', color: 'rgba(248,248,246,0.7)', textDecoration: 'none' }}>📋 Sessions</a>
           <a href="/facility/settings" style={{ fontSize: '13px', color: 'rgba(248,248,246,0.7)', textDecoration: 'none' }}>⚙️ Settings</a>
           <button onClick={handleSignOut} className={styles.signOutBtn}>Sign Out</button>
         </div>
@@ -193,7 +191,7 @@ export default function FacilityDashboard() {
                 >
                   <div className={styles.playerInfo}>
                     <span className={styles.playerName}>{p.name}</span>
-                    <span className={styles.playerMeta}>{p.primary_position} · Class of {p.grad_year} · {p.state}</span>
+                    <span className={styles.playerMeta}>{p.primary_position} · Class of {p.graduation_year} · {p.city}, {p.state}</span>
                   </div>
                   {selectedPlayer?.id === p.id && <span className={styles.checkmark}>✓</span>}
                 </button>

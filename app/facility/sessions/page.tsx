@@ -1,0 +1,343 @@
+'use client'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import styles from './sessions.module.css'
+
+const METRIC_LABELS: Record<string, string> = {
+  exit_velo: 'Max Exit Velo',
+  avg_exit_velo: 'Avg Exit Velo',
+  launch_angle: 'Launch Angle',
+  hard_hit_avg: 'Hard Hit Avg',
+  distance: 'Avg Distance',
+  max_distance: 'Max Distance',
+  bat_speed: 'Bat Speed',
+  hittrax_avg: 'Sim AVG',
+  hittrax_slg: 'Sim SLG',
+  ld_pct: 'Line Drive %',
+  gb_pct: 'Ground Ball %',
+  fb_pct: 'Fly Ball %',
+  lph: 'Line Drives/Hit',
+  arm_velo: 'Arm Velo',
+  sixty_time: '60 Time',
+  fb_velo: 'FB Velo',
+  fb_spin_rate: 'FB Spin',
+}
+
+const METRIC_UNITS: Record<string, string> = {
+  exit_velo: 'mph', avg_exit_velo: 'mph', launch_angle: '°',
+  hard_hit_avg: '%', distance: 'ft', max_distance: 'ft',
+  bat_speed: 'mph', hittrax_avg: '', hittrax_slg: '',
+  ld_pct: '%', gb_pct: '%', fb_pct: '%', lph: '',
+  arm_velo: 'mph', sixty_time: 's', fb_velo: 'mph', fb_spin_rate: 'rpm',
+}
+
+interface Session {
+  id: string
+  player_id: string
+  verified_at: string
+  equipment: string
+  notes: string | null
+  player_name?: string
+  [key: string]: any
+}
+
+export default function FacilitySessions() {
+  const router = useRouter()
+  const [facilityProfile, setFacilityProfile] = useState<any>(null)
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null)
+  const [compareSession, setCompareSession] = useState<Session | null>(null)
+  const [playerSessions, setPlayerSessions] = useState<Session[]>([])
+  const [aiReport, setAiReport] = useState<string | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [editNotes, setEditNotes] = useState('')
+  const [savingNotes, setSavingNotes] = useState(false)
+  const [successMsg, setSuccessMsg] = useState('')
+  const [searchName, setSearchName] = useState('')
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) { router.push('/facility/login'); return }
+      const { data: fp } = await supabase
+        .from('facility_profiles')
+        .select('*')
+        .eq('user_id', data.user.id)
+        .single()
+      if (!fp) { router.push('/facility/login'); return }
+      setFacilityProfile(fp)
+      loadSessions(fp.id)
+    })
+  }, [router])
+
+  async function loadSessions(facilityId: string) {
+    setLoading(true)
+    const { data } = await supabase
+      .from('verified_measurables')
+      .select(`
+        *,
+        player:player_profiles(
+          id,
+          user:users(name)
+        )
+      `)
+      .eq('facility_id', facilityId)
+      .order('verified_at', { ascending: false })
+      .limit(100)
+
+    const mapped = (data ?? []).map((s: any) => ({
+      ...s,
+      player_name: s.player?.user?.name ?? 'Unknown Player',
+    }))
+    setSessions(mapped)
+    setLoading(false)
+  }
+
+  async function openSession(session: Session) {
+    setSelectedSession(session)
+    setAiReport(null)
+    setEditNotes(session.notes ?? '')
+
+    // Load other sessions for this player at this facility
+    const { data } = await supabase
+      .from('verified_measurables')
+      .select('*')
+      .eq('player_id', session.player_id)
+      .eq('facility_id', facilityProfile.id)
+      .neq('id', session.id)
+      .order('verified_at', { ascending: false })
+
+    setPlayerSessions(data ?? [])
+    setCompareSession(null)
+  }
+
+  async function saveNotes() {
+    if (!selectedSession) return
+    setSavingNotes(true)
+    await supabase.from('verified_measurables')
+      .update({ notes: editNotes })
+      .eq('id', selectedSession.id)
+    setSelectedSession(prev => prev ? { ...prev, notes: editNotes } : null)
+    setSessions(prev => prev.map(s => s.id === selectedSession.id ? { ...s, notes: editNotes } : s))
+    setSavingNotes(false)
+    setSuccessMsg('✅ Notes saved')
+    setTimeout(() => setSuccessMsg(''), 2000)
+  }
+
+  async function deleteSession() {
+    if (!selectedSession) return
+    if (!confirm(`Delete this session for ${selectedSession.player_name}? This cannot be undone.`)) return
+    setDeleting(true)
+    await supabase.from('verified_measurables').delete().eq('id', selectedSession.id)
+    setSessions(prev => prev.filter(s => s.id !== selectedSession.id))
+    setSelectedSession(null)
+    setDeleting(false)
+  }
+
+  async function generateAI() {
+    if (!selectedSession) return
+    setAiLoading(true)
+    setAiReport(null)
+
+    const metrics = Object.entries(METRIC_LABELS)
+      .filter(([key]) => selectedSession[key] != null)
+      .map(([key, label]) => `${label}: ${selectedSession[key]}${METRIC_UNITS[key] ?? ''}`)
+      .join(', ')
+
+    let compareText = ''
+    if (compareSession) {
+      const prev = Object.entries(METRIC_LABELS)
+        .filter(([key]) => compareSession[key] != null)
+        .map(([key, label]) => `${label}: ${compareSession[key]}${METRIC_UNITS[key] ?? ''}`)
+        .join(', ')
+      compareText = `\n\nPrevious session (${new Date(compareSession.verified_at).toLocaleDateString()}):\n${prev}`
+    }
+
+    const prompt = compareSession
+      ? `You are a professional baseball development coach. Compare these two HitTrax sessions for ${selectedSession.player_name} at ${facilityProfile?.name}. Write a concise 3-4 sentence analysis in third-person highlighting improvements, regressions, and what the trends mean for their development. Be specific about percentages and numbers.\n\nCurrent session (${new Date(selectedSession.verified_at).toLocaleDateString()}):\n${metrics}${compareText}`
+      : `You are a professional baseball development coach. Analyze this HitTrax session for ${selectedSession.player_name} at ${facilityProfile?.name}. Write a concise 3-4 sentence analysis in third-person covering what the numbers indicate about their current skill level and development opportunities. Be specific and reference actual metrics.\n\nSession (${new Date(selectedSession.verified_at).toLocaleDateString()}):\n${metrics}\n${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.NEXT_PUBLIC_ANTHROPIC_KEY ?? '',
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 400,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      })
+      const data = await response.json()
+      setAiReport(data.content?.[0]?.text ?? 'Could not generate report.')
+    } catch {
+      setAiReport('Error generating report. Please try again.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const filteredSessions = searchName
+    ? sessions.filter(s => s.player_name?.toLowerCase().includes(searchName.toLowerCase()))
+    : sessions
+
+  const sessionMetrics = (s: Session) => Object.entries(METRIC_LABELS)
+    .filter(([key]) => s[key] != null)
+    .map(([key, label]) => ({ key, label, value: s[key], unit: METRIC_UNITS[key] ?? '' }))
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    router.push('/facility/login')
+  }
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.headerLeft}>
+          <span className={styles.headerLogo}>Diamond IQ</span>
+          <span className={styles.headerSub}>{facilityProfile?.name ?? 'Facility Portal'}</span>
+        </div>
+        <div className={styles.headerNav}>
+          <a href="/facility/dashboard" className={styles.navLink}>📂 Upload</a>
+          <a href="/facility/settings" className={styles.navLink}>⚙️ Settings</a>
+          <button onClick={handleSignOut} className={styles.signOutBtn}>Sign Out</button>
+        </div>
+      </header>
+
+      <div className={styles.layout}>
+        {/* Session List */}
+        <div className={styles.sidebar}>
+          <div className={styles.sidebarHeader}>
+            <h2 className={styles.sidebarTitle}>Session History</h2>
+            <input
+              className={styles.searchInput}
+              placeholder="Search player..."
+              value={searchName}
+              onChange={e => setSearchName(e.target.value)}
+            />
+          </div>
+
+          {loading ? (
+            <div className={styles.loading}>Loading sessions...</div>
+          ) : filteredSessions.length === 0 ? (
+            <div className={styles.empty}>No sessions found</div>
+          ) : (
+            <div className={styles.sessionList}>
+              {filteredSessions.map(s => (
+                <button
+                  key={s.id}
+                  className={`${styles.sessionRow} ${selectedSession?.id === s.id ? styles.sessionRowActive : ''}`}
+                  onClick={() => openSession(s)}
+                >
+                  <div className={styles.sessionName}>{s.player_name}</div>
+                  <div className={styles.sessionMeta}>
+                    {new Date(s.verified_at).toLocaleDateString()} · {s.equipment ?? 'Manual'}
+                    {s.exit_velo ? ` · ${s.exit_velo} mph` : ''}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Session Detail */}
+        <div className={styles.main}>
+          {!selectedSession ? (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>📊</div>
+              <div className={styles.emptyTitle}>Select a session</div>
+              <div className={styles.emptySub}>Click any session on the left to view details, edit notes, or generate an AI analysis.</div>
+            </div>
+          ) : (
+            <div className={styles.detail}>
+              {successMsg && <div className={styles.success}>{successMsg}</div>}
+
+              <div className={styles.detailHeader}>
+                <div>
+                  <h2 className={styles.detailName}>{selectedSession.player_name}</h2>
+                  <p className={styles.detailMeta}>
+                    {new Date(selectedSession.verified_at).toLocaleDateString()} · {selectedSession.equipment ?? 'Manual entry'}
+                  </p>
+                </div>
+                <button className={styles.deleteBtn} onClick={deleteSession} disabled={deleting}>
+                  {deleting ? 'Deleting...' : '🗑️ Delete'}
+                </button>
+              </div>
+
+              {/* Metrics Grid */}
+              <div className={styles.metricsGrid}>
+                {sessionMetrics(selectedSession).map(({ key, label, value, unit }) => (
+                  <div key={key} className={styles.metricCard}>
+                    <div className={styles.metricValue}>{value}{unit}</div>
+                    <div className={styles.metricLabel}>{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Notes */}
+              <div className={styles.section}>
+                <h3 className={styles.sectionTitle}>Session Notes</h3>
+                <textarea
+                  className={styles.notesInput}
+                  value={editNotes}
+                  onChange={e => setEditNotes(e.target.value)}
+                  placeholder="Add notes about this session..."
+                  rows={3}
+                />
+                <button className={styles.saveNotesBtn} onClick={saveNotes} disabled={savingNotes}>
+                  {savingNotes ? 'Saving...' : 'Save Notes'}
+                </button>
+              </div>
+
+              {/* AI Analysis */}
+              <div className={styles.section}>
+                <div className={styles.aiHeader}>
+                  <h3 className={styles.sectionTitle}>⚡ AI Analysis</h3>
+                  {playerSessions.length > 0 && (
+                    <select
+                      className={styles.compareSelect}
+                      value={compareSession?.id ?? ''}
+                      onChange={e => {
+                        const s = playerSessions.find(p => p.id === e.target.value)
+                        setCompareSession(s ?? null)
+                        setAiReport(null)
+                      }}
+                    >
+                      <option value="">Single session analysis</option>
+                      {playerSessions.map(s => (
+                        <option key={s.id} value={s.id}>
+                          Compare with {new Date(s.verified_at).toLocaleDateString()}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {compareSession && (
+                  <div className={styles.compareBar}>
+                    Comparing current session with {new Date(compareSession.verified_at).toLocaleDateString()}
+                  </div>
+                )}
+
+                <button className={styles.aiBtn} onClick={generateAI} disabled={aiLoading}>
+                  {aiLoading ? 'Generating...' : compareSession ? '⚡ Compare Sessions' : '⚡ Analyze Session'}
+                </button>
+
+                {aiReport && (
+                  <div className={styles.aiReport}>
+                    <p>{aiReport}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
