@@ -63,23 +63,23 @@ export default function FacilitySessions() {
       if (!data.user) { router.push('/facility/login'); return }
       const userId = data.user.id
 
-      // Check owner first
-      const { data: owned } = await supabase
-        .from('facility_profiles')
-        .select('*')
+      // Check staff first
+      const { data: staffLink } = await supabase
+        .from('facility_users')
+        .select('*, facility:facility_profiles(*)')
         .eq('user_id', userId)
         .single()
 
-      let fp: any = owned
+      let fp: any = staffLink?.facility ?? null
 
-      // Check staff
+      // Fall back to owner
       if (!fp) {
-        const { data: staffLink } = await supabase
-          .from('facility_users')
-          .select('*, facility:facility_profiles(*)')
+        const { data: owned } = await supabase
+          .from('facility_profiles')
+          .select('*')
           .eq('user_id', userId)
           .single()
-        if (staffLink?.facility) fp = staffLink.facility
+        fp = owned
       }
 
       if (!fp) { router.push('/facility/login'); return }
@@ -116,7 +116,6 @@ export default function FacilitySessions() {
     setAiReport(null)
     setEditNotes(session.notes ?? '')
 
-    // Load other sessions for this player at this facility
     const { data } = await supabase
       .from('verified_measurables')
       .select('*')
@@ -220,7 +219,6 @@ export default function FacilitySessions() {
       </header>
 
       <div className={styles.layout}>
-        {/* Session List */}
         <div className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
             <h2 className={styles.sidebarTitle}>Session History</h2>
@@ -255,7 +253,6 @@ export default function FacilitySessions() {
           )}
         </div>
 
-        {/* Session Detail */}
         <div className={styles.main}>
           {!selectedSession ? (
             <div className={styles.emptyState}>
@@ -279,7 +276,6 @@ export default function FacilitySessions() {
                 </button>
               </div>
 
-              {/* Metrics Grid */}
               <div className={styles.metricsGrid}>
                 {sessionMetrics(selectedSession).map(({ key, label, value, unit }) => (
                   <div key={key} className={styles.metricCard}>
@@ -289,7 +285,6 @@ export default function FacilitySessions() {
                 ))}
               </div>
 
-              {/* Notes */}
               <div className={styles.section}>
                 <h3 className={styles.sectionTitle}>Session Notes</h3>
                 <textarea
@@ -304,7 +299,6 @@ export default function FacilitySessions() {
                 </button>
               </div>
 
-              {/* AI Analysis */}
               <div className={styles.section}>
                 <div className={styles.aiHeader}>
                   <h3 className={styles.sectionTitle}>⚡ AI Analysis</h3>
