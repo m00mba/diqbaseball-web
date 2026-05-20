@@ -80,11 +80,17 @@ export default function FacilityDashboard() {
     if (!search.trim()) return
     setSearching(true)
     const { data } = await supabase
-      .from('player_profiles')
-      .select('id, name, graduation_year, primary_position, city, state, avatar_url')
+      .from('users')
+      .select('id, name, player_profiles(id, grad_year, positions, state)')
       .ilike('name', `%${search}%`)
+      .eq('role', 'player')
       .limit(10)
-    setPlayers(data ?? [])
+    const results = (data ?? []).filter((u: any) => u.player_profiles).map((u: any) => {
+      const pp = Array.isArray(u.player_profiles) ? u.player_profiles[0] : u.player_profiles
+      const pos = Array.isArray(pp?.positions) ? pp.positions[0] : pp?.positions
+      return { id: pp?.id, user_id: u.id, name: u.name, grad_year: pp?.grad_year, primary_position: pos, state: pp?.state }
+    })
+    setPlayers(results)
     setSearching(false)
   }
 
@@ -115,7 +121,7 @@ export default function FacilityDashboard() {
       facility_id: facilityProfile.id,
       verified_by: userData.user!.id,
       equipment: 'HitTrax',
-      session_type: 'hitting',
+      
       notes: notes || null,
       verified_at: new Date().toISOString(),
       ...csvData,
@@ -186,7 +192,7 @@ export default function FacilityDashboard() {
                 >
                   <div className={styles.playerInfo}>
                     <span className={styles.playerName}>{p.name}</span>
-                    <span className={styles.playerMeta}>{p.primary_position} · Class of {p.graduation_year} · {p.city}, {p.state}</span>
+                    <span className={styles.playerMeta}>{p.primary_position} · Class of {p.grad_year} · {p.state}</span>
                   </div>
                   {selectedPlayer?.id === p.id && <span className={styles.checkmark}>✓</span>}
                 </button>
