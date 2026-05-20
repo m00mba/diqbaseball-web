@@ -76,14 +76,6 @@ export default function FacilitySettings() {
     router.push('/facility/login')
   }
 
-  async function handlePasswordReset() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user?.email) return
-    const { error } = await supabase.auth.resetPasswordForEmail(user.email)
-    if (error) { alert('Error: ' + error.message); return }
-    setSuccessMsg(`✅ Password reset email sent to ${user.email}`)
-  }
-
   if (loading) return (
     <div className={styles.page}>
       <div className={styles.loading}>Loading...</div>
@@ -194,19 +186,6 @@ export default function FacilitySettings() {
           <button type="submit" className={styles.saveBtn} disabled={saving}>
             {saving ? 'Saving...' : '✓ Save Changes'}
           </button>
-
-          {/* Password Reset */}
-          <div className={styles.card} style={{ marginTop: 0 }}>
-            <h2 className={styles.cardTitle}>Security</h2>
-            <p className={styles.cardHint}>Send a password reset link to your registered email address.</p>
-            <button
-              type="button"
-              className={styles.resetBtn}
-              onClick={handlePasswordReset}
-            >
-              📧 Send Password Reset Email
-            </button>
-          </div>
         </form>
       </div>
     </div>
