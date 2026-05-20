@@ -5,16 +5,16 @@ export function middleware(request: NextRequest) {
   const host = request.headers.get('host') ?? ''
   const pathname = request.nextUrl.pathname
 
-  // Redirect facility.diqbaseball.com to /facility/login
-  if (host.startsWith('facility.')) {
-    if (pathname === '/' || pathname === '') {
-      return NextResponse.redirect(new URL('/facility/login', request.url))
-    }
+  // Redirect facility.diqbaseball.com root to /facility/login
+  if (host.includes('facility.diqbaseball') && pathname === '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/facility/login'
+    return NextResponse.redirect(url)
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/', '/facility'],
+  matcher: ['/'],
 }
