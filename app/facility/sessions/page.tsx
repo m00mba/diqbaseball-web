@@ -61,11 +61,27 @@ export default function FacilitySessions() {
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/facility/login'); return }
-      const { data: fp } = await supabase
+      const userId = data.user.id
+
+      // Check owner first
+      const { data: owned } = await supabase
         .from('facility_profiles')
         .select('*')
-        .eq('user_id', data.user.id)
+        .eq('user_id', userId)
         .single()
+
+      let fp: any = owned
+
+      // Check staff
+      if (!fp) {
+        const { data: staffLink } = await supabase
+          .from('facility_users')
+          .select('*, facility:facility_profiles(*)')
+          .eq('user_id', userId)
+          .single()
+        if (staffLink?.facility) fp = staffLink.facility
+      }
+
       if (!fp) { router.push('/facility/login'); return }
       setFacilityProfile(fp)
       loadSessions(fp.id)
