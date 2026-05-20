@@ -15,39 +15,16 @@ export default function FacilityLogin() {
     e.preventDefault()
     setLoading(true)
     setError('')
-
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
     if (authError) { setError(authError.message); setLoading(false); return }
-
-    const userId = data.user.id
-
-    // Check if facility owner
-    const { data: userRecord } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', userId)
-      .single()
-
-    if (userRecord?.role === 'facility') {
-      router.push('/facility/dashboard')
+    const { data: user } = await supabase.from('users').select('role').eq('id', data.user.id).single()
+    if (user?.role !== 'facility') {
+      setError('This portal is for facility accounts only.')
+      await supabase.auth.signOut()
+      setLoading(false)
       return
     }
-
-    // Check if staff member linked to a facility
-    const { data: staffLink } = await supabase
-      .from('facility_users')
-      .select('facility_id')
-      .eq('user_id', userId)
-      .single()
-
-    if (staffLink?.facility_id) {
-      router.push('/facility/dashboard')
-      return
-    }
-
-    setError('This portal is for facility accounts only.')
-    await supabase.auth.signOut()
-    setLoading(false)
+    router.push('/facility/dashboard')
   }
 
   return (

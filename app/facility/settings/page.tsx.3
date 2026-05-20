@@ -12,9 +12,6 @@ export default function FacilitySettings() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
-  const [staff, setStaff] = useState<any[]>([])
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviting, setInviting] = useState(false)
 
   // Form fields
   const [name, setName] = useState('')
@@ -44,13 +41,6 @@ export default function FacilitySettings() {
       setBio(fp.bio ?? '')
       setEquipment(fp.equipment ?? [])
       setLoading(false)
-
-      // Load staff
-      const { data: staffData } = await supabase
-        .from('facility_users')
-        .select('*, user:users(name, email)')
-        .eq('facility_id', fp.id)
-      setStaff(staffData ?? [])
     })
   }, [router])
 
@@ -92,53 +82,6 @@ export default function FacilitySettings() {
     const { error } = await supabase.auth.resetPasswordForEmail(user.email)
     if (error) { alert('Error: ' + error.message); return }
     setSuccessMsg(`✅ Password reset email sent to ${user.email}`)
-  }
-
-  async function inviteStaff() {
-    if (!inviteEmail.trim()) return
-    setInviting(true)
-    // Check if user exists
-    const { data: existing } = await supabase
-      .from('users')
-      .select('id, name')
-      .eq('email', inviteEmail.trim().toLowerCase())
-      .single()
-
-    if (!existing) {
-      alert('No account found with that email. They need to create a Diamond IQ account first.')
-      setInviting(false)
-      return
-    }
-
-    // Link them to this facility
-    const { error } = await supabase
-      .from('facility_users')
-      .upsert({ facility_id: facilityProfile.id, user_id: existing.id, role: 'staff' },
-        { onConflict: 'facility_id,user_id' })
-
-    if (error) { alert('Error: ' + error.message); setInviting(false); return }
-
-    setSuccessMsg(`✅ ${existing.name} added as staff`)
-    setInviteEmail('')
-    loadStaff()
-    setInviting(false)
-  }
-
-  async function removeStaff(userId: string) {
-    if (!confirm('Remove this staff member?')) return
-    await supabase.from('facility_users')
-      .delete()
-      .eq('facility_id', facilityProfile.id)
-      .eq('user_id', userId)
-    loadStaff()
-  }
-
-  async function loadStaff() {
-    const { data } = await supabase
-      .from('facility_users')
-      .select('*, user:users(name, email)')
-      .eq('facility_id', facilityProfile?.id)
-    setStaff(data ?? [])
   }
 
   if (loading) return (
@@ -252,50 +195,6 @@ export default function FacilitySettings() {
           <button type="submit" className={styles.saveBtn} disabled={saving}>
             {saving ? 'Saving...' : '✓ Save Changes'}
           </button>
-
-          {/* Staff Management */}
-          <div className={styles.card} style={{ marginTop: 0 }}>
-            <h2 className={styles.cardTitle}>Staff Access</h2>
-            <p className={styles.cardHint}>Add staff members who can log sessions from this facility. They need an existing Diamond IQ account.</p>
-            
-            {staff.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                {staff.map((s: any) => (
-                  <div key={s.user_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(4,44,83,0.08)' }}>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--navy)' }}>{s.user?.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--gray)' }}>{s.user?.email}</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeStaff(s.user_id)}
-                      style={{ fontSize: 12, color: '#C0392B', background: 'none', border: 'none', cursor: 'pointer' }}>
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                className={styles.input}
-                style={{ flex: 1, marginBottom: 0 }}
-                value={inviteEmail}
-                onChange={e => setInviteEmail(e.target.value)}
-                placeholder="staff@email.com"
-                type="email"
-              />
-              <button
-                type="button"
-                className={styles.saveBtn}
-                style={{ width: 'auto', padding: '11px 20px' }}
-                onClick={inviteStaff}
-                disabled={inviting}>
-                {inviting ? '...' : 'Add'}
-              </button>
-            </div>
-          </div>
 
           {/* Password Reset */}
           <div className={styles.card} style={{ marginTop: 0 }}>
