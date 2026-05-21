@@ -112,7 +112,7 @@ export default function Home() {
           <h2 className={styles.downloadTitle}>Get Diamond IQ Baseball</h2>
           <p className={styles.downloadSub}>Download on iOS and start building your verified recruiting profile today.</p>
           <a
-            href="https://testflight.apple.com/join/diqbaseball"
+            href="https://testflight.apple.com/join/kywhWyDg"
             className={styles.btnDownload}
             target="_blank"
             rel="noopener noreferrer"
