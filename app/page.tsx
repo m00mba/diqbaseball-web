@@ -8,10 +8,10 @@ export default function Home() {
 
       {/* NAV */}
       <nav className={styles.nav}>
-        <div className={styles.navLogo}>
+        <a href="https://diqbaseball.com" className={styles.navLogo} style={{textDecoration:"none"}}> 
           <span className={styles.navLogoText}>Diamond IQ</span>
           <span className={styles.navLogoBadge}>BASEBALL</span>
-        </div>
+        </a>
         <div className={styles.navLinks}>
           <Link href="/facility/login" className={styles.navLink}>Facility Portal</Link>
           <Link href="#download" className={styles.navCta}>Download App</Link>
