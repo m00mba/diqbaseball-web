@@ -181,27 +181,23 @@ export default function FacilitySessions() {
     }
 
     const prompt = compareSession
-      ? `You are a professional baseball development coach analyzing HitTrax session data for ${selectedSession.player_name} at ${facilityProfile?.name}.
+      ? `You are a professional baseball development coach. Compare these two HitTrax sessions for ${selectedSession.player_name} at ${facilityProfile?.name}.
 
-Compare these two sessions and respond in exactly three sections:
+Write your response in two sections:
 
-STRENGTHS: In 2-3 sentences, highlight what is strong or has improved between the two sessions. Be specific with numbers. Celebrate genuine wins.
+ANALYSIS: A concise 3-4 sentence analysis in third-person highlighting improvements, regressions, and what the trends mean for their development. Be specific about percentages and numbers.
 
-OPPORTUNITIES: In 2-3 sentences, identify what metrics are weak or regressing and what that means for this player's development. Be honest and specific with numbers.
-
-RECOMMENDED DRILLS: For each opportunity identified above, prescribe one specific drill that directly targets that weakness. Name the drill, state which metric it addresses, and briefly describe it. Only prescribe drills tied to actual weaknesses in the data.
+RECOMMENDED DRILLS: List 2-3 specific drills or training focuses based on the comparison trends. For each drill, give it a name and one sentence explaining why it targets the identified area of improvement or regression.
 
 Current session (${new Date(selectedSession.verified_at).toLocaleDateString()}):
 ${metrics}${compareText}`
-      : `You are a professional baseball development coach analyzing HitTrax session data for ${selectedSession.player_name} at ${facilityProfile?.name}.
+      : `You are a professional baseball development coach. Analyze this HitTrax session for ${selectedSession.player_name} at ${facilityProfile?.name}.
 
-Respond in exactly three sections:
+Write your response in two sections:
 
-STRENGTHS: In 2-3 sentences, highlight what this player is doing well based on the metrics. Be specific with numbers. Celebrate genuine wins — do not manufacture praise for weak metrics.
+ANALYSIS: A concise 3-4 sentence analysis in third-person covering what the numbers indicate about their current skill level and development opportunities. Be specific and reference actual metrics.
 
-OPPORTUNITIES: In 2-3 sentences, identify the weakest metrics and what they reveal about this player's development gaps. Be honest and specific with numbers.
-
-RECOMMENDED DRILLS: For each opportunity identified above, prescribe one specific drill that directly targets that weakness. Name the drill, state which metric it addresses and why that number indicates a weakness, and briefly describe the drill. Only prescribe drills tied to actual weaknesses — do not pad with generic advice.
+RECOMMENDED DRILLS: List 2-3 specific drills or training focuses based on the session data. For each drill, give it a name and one sentence explaining why it targets the identified area of development.
 
 Session (${new Date(selectedSession.verified_at).toLocaleDateString()}):
 ${metrics}
@@ -399,46 +395,27 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                 {aiReport && (
                   <div className={styles.aiReport}>
                     {aiReportDate && (
-                      <div style={{ fontSize: 11, color: '#888', marginBottom: 12 }}>
+                      <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>
                         Generated {new Date(aiReportDate).toLocaleDateString()}
                       </div>
                     )}
-                    {(() => {
-                      const strengthsMatch = aiReport.match(/STRENGTHS:([\s\S]*?)(?=OPPORTUNITIES:|$)/i)
-                      const opportunitiesMatch = aiReport.match(/OPPORTUNITIES:([\s\S]*?)(?=RECOMMENDED DRILLS:|$)/i)
-                      const drillsMatch = aiReport.match(/RECOMMENDED DRILLS:([\s\S]*?)$/i)
-
-                      return (
-                        <>
-                          {strengthsMatch && (
-                            <div style={{ marginBottom: 14 }}>
-                              <div style={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#27500A', marginBottom: 6 }}>
-                                ✅ Strengths
-                              </div>
-                              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>{strengthsMatch[1].trim()}</p>
-                            </div>
-                          )}
-                          {opportunitiesMatch && (
-                            <div style={{ marginBottom: 14, paddingTop: 14, borderTop: '1px solid #e5e5e5' }}>
-                              <div style={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#7A5200', marginBottom: 6 }}>
-                                🎯 Opportunities
-                              </div>
-                              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>{opportunitiesMatch[1].trim()}</p>
-                            </div>
-                          )}
-                          {drillsMatch && (
-                            <div style={{ paddingTop: 14, borderTop: '1px solid #e5e5e5' }}>
-                              <div style={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#185FA5', marginBottom: 8 }}>
-                                🏋️ Recommended Drills
-                              </div>
-                              {drillsMatch[1].trim().split('\n').filter(l => l.trim()).map((line, j) => (
-                                <p key={j} style={{ margin: '0 0 6px 0', fontSize: 13, lineHeight: 1.6 }}>{line.trim()}</p>
-                              ))}
-                            </div>
-                          )}
-                        </>
+                    {aiReport.split(/RECOMMENDED DRILLS:/i).map((section, i) => (
+                      i === 0 ? (
+                        <div key="analysis">
+                          <div style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#555', marginBottom: 6 }}>Analysis</div>
+                          <p style={{ margin: 0 }}>{section.replace(/^ANALYSIS:/i, '').trim()}</p>
+                        </div>
+                      ) : (
+                        <div key="drills" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #e5e5e5' }}>
+                          <div style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#185FA5', marginBottom: 8 }}>
+                            🎯 Recommended Drills
+                          </div>
+                          {section.trim().split('\n').filter(l => l.trim()).map((line, j) => (
+                            <p key={j} style={{ margin: '0 0 6px 0', fontSize: 13 }}>{line.trim()}</p>
+                          ))}
+                        </div>
                       )
-                    })()}
+                    ))}
                   </div>
                 )}
               </div>
