@@ -58,15 +58,11 @@ export default function FacilitySessions() {
   const [savingNotes, setSavingNotes] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [searchName, setSearchName] = useState('')
-  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null)
-
-  const canRegenerate = currentUserEmail === 'kod@42labs.org'
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/facility/login'); return }
       const userId = data.user.id
-      setCurrentUserEmail(data.user.email ?? null)
 
       // Check staff first
       const { data: staffLink } = await supabase
@@ -387,7 +383,7 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                   </div>
                 )}
 
-                {!aiReport ? (
+                {!aiReport && (
                   <button
                     className={styles.aiBtn}
                     onClick={generateAI}
@@ -397,15 +393,6 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                       ? 'Generating...'
                       : compareSession ? '⚡ Compare Sessions' : '⚡ Analyze Session'
                     }
-                  </button>
-                ) : canRegenerate && (
-                  <button
-                    className={styles.aiBtn}
-                    onClick={generateAI}
-                    disabled={aiLoading}
-                    style={{ opacity: 0.7 }}
-                  >
-                    {aiLoading ? 'Regenerating...' : '🔄 Regenerate (Test Only)'}
                   </button>
                 )}
 
