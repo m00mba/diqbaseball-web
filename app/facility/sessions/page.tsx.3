@@ -181,27 +181,8 @@ export default function FacilitySessions() {
     }
 
     const prompt = compareSession
-      ? `You are a professional baseball development coach. Compare these two HitTrax sessions for ${selectedSession.player_name} at ${facilityProfile?.name}.
-
-Write your response in two sections:
-
-ANALYSIS: A concise 3-4 sentence analysis in third-person highlighting improvements, regressions, and what the trends mean for their development. Be specific about percentages and numbers.
-
-RECOMMENDED DRILLS: List 2-3 specific drills or training focuses based on the comparison trends. For each drill, give it a name and one sentence explaining why it targets the identified area of improvement or regression.
-
-Current session (${new Date(selectedSession.verified_at).toLocaleDateString()}):
-${metrics}${compareText}`
-      : `You are a professional baseball development coach. Analyze this HitTrax session for ${selectedSession.player_name} at ${facilityProfile?.name}.
-
-Write your response in two sections:
-
-ANALYSIS: A concise 3-4 sentence analysis in third-person covering what the numbers indicate about their current skill level and development opportunities. Be specific and reference actual metrics.
-
-RECOMMENDED DRILLS: List 2-3 specific drills or training focuses based on the session data. For each drill, give it a name and one sentence explaining why it targets the identified area of development.
-
-Session (${new Date(selectedSession.verified_at).toLocaleDateString()}):
-${metrics}
-${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
+      ? `You are a professional baseball development coach. Compare these two HitTrax sessions for ${selectedSession.player_name} at ${facilityProfile?.name}. Write a concise 3-4 sentence analysis in third-person highlighting improvements, regressions, and what the trends mean for their development. Be specific about percentages and numbers.\n\nCurrent session (${new Date(selectedSession.verified_at).toLocaleDateString()}):\n${metrics}${compareText}`
+      : `You are a professional baseball development coach. Analyze this HitTrax session for ${selectedSession.player_name} at ${facilityProfile?.name}. Write a concise 3-4 sentence analysis in third-person covering what the numbers indicate about their current skill level and development opportunities. Be specific and reference actual metrics.\n\nSession (${new Date(selectedSession.verified_at).toLocaleDateString()}):\n${metrics}\n${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
 
     try {
       const response = await fetch('/api/analyze', {
@@ -379,18 +360,9 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                   </div>
                 )}
 
-                {!aiReport && (
-                  <button
-                    className={styles.aiBtn}
-                    onClick={generateAI}
-                    disabled={aiLoading}
-                  >
-                    {aiLoading
-                      ? 'Generating...'
-                      : compareSession ? '⚡ Compare Sessions' : '⚡ Analyze Session'
-                    }
-                  </button>
-                )}
+                <button className={styles.aiBtn} onClick={generateAI} disabled={aiLoading}>
+                  {aiLoading ? 'Generating...' : compareSession ? '⚡ Compare Sessions' : '⚡ Analyze Session'}
+                </button>
 
                 {aiReport && (
                   <div className={styles.aiReport}>
@@ -399,23 +371,7 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                         Generated {new Date(aiReportDate).toLocaleDateString()}
                       </div>
                     )}
-                    {aiReport.split(/RECOMMENDED DRILLS:/i).map((section, i) => (
-                      i === 0 ? (
-                        <div key="analysis">
-                          <div style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#555', marginBottom: 6 }}>Analysis</div>
-                          <p style={{ margin: 0 }}>{section.replace(/^ANALYSIS:/i, '').trim()}</p>
-                        </div>
-                      ) : (
-                        <div key="drills" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #e5e5e5' }}>
-                          <div style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#185FA5', marginBottom: 8 }}>
-                            🎯 Recommended Drills
-                          </div>
-                          {section.trim().split('\n').filter(l => l.trim()).map((line, j) => (
-                            <p key={j} style={{ margin: '0 0 6px 0', fontSize: 13 }}>{line.trim()}</p>
-                          ))}
-                        </div>
-                      )
-                    ))}
+                    <p>{aiReport}</p>
                   </div>
                 )}
               </div>
