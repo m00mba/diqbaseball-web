@@ -58,15 +58,11 @@ export default function FacilitySessions() {
   const [savingNotes, setSavingNotes] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [searchName, setSearchName] = useState('')
-  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null)
-
-  const canRegenerate = currentUserEmail === 'kod@42labs.org'
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/facility/login'); return }
       const userId = data.user.id
-      setCurrentUserEmail(data.user.email ?? null)
 
       // Check staff first
       const { data: staffLink } = await supabase
@@ -387,7 +383,7 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                   </div>
                 )}
 
-                {!aiReport ? (
+                {!aiReport && (
                   <button
                     className={styles.aiBtn}
                     onClick={generateAI}
@@ -397,15 +393,6 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                       ? 'Generating...'
                       : compareSession ? '⚡ Compare Sessions' : '⚡ Analyze Session'
                     }
-                  </button>
-                ) : canRegenerate && (
-                  <button
-                    className={styles.aiBtn}
-                    onClick={generateAI}
-                    disabled={aiLoading}
-                    style={{ opacity: 0.7 }}
-                  >
-                    {aiLoading ? 'Regenerating...' : '🔄 Regenerate (Test Only)'}
                   </button>
                 )}
 
@@ -417,22 +404,9 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                       </div>
                     )}
                     {(() => {
-                      // Normalize both markdown (## STRENGTHS) and plain (STRENGTHS:) formats
-                      const normalized = aiReport
-                        .replace(/^#{1,3}\s*STRENGTHS\s*/im, 'STRENGTHS:')
-                        .replace(/^#{1,3}\s*OPPORTUNITIES\s*/im, 'OPPORTUNITIES:')
-                        .replace(/^#{1,3}\s*RECOMMENDED DRILLS\s*/im, 'RECOMMENDED DRILLS:')
-                        // Also handle "# PLAYER NAME — HITTRAX SESSION ANALYSIS" style headers
-                        .replace(/^#[^#\n]*\n/m, '')
-
-                      const strengthsMatch = normalized.match(/STRENGTHS:([\s\S]*?)(?=OPPORTUNITIES:|$)/i)
-                      const opportunitiesMatch = normalized.match(/OPPORTUNITIES:([\s\S]*?)(?=RECOMMENDED DRILLS:|$)/i)
-                      const drillsMatch = normalized.match(/RECOMMENDED DRILLS:([\s\S]*?)$/i)
-
-                      // If no sections found, just render as plain text (old format fallback)
-                      if (!strengthsMatch && !opportunitiesMatch && !drillsMatch) {
-                        return <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>{aiReport}</p>
-                      }
+                      const strengthsMatch = aiReport.match(/STRENGTHS:([\s\S]*?)(?=OPPORTUNITIES:|$)/i)
+                      const opportunitiesMatch = aiReport.match(/OPPORTUNITIES:([\s\S]*?)(?=RECOMMENDED DRILLS:|$)/i)
+                      const drillsMatch = aiReport.match(/RECOMMENDED DRILLS:([\s\S]*?)$/i)
 
                       return (
                         <>
@@ -441,7 +415,7 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                               <div style={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#27500A', marginBottom: 6 }}>
                                 ✅ Strengths
                               </div>
-                              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>{strengthsMatch[1].replace(/\*\*/g, '').trim()}</p>
+                              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>{strengthsMatch[1].trim()}</p>
                             </div>
                           )}
                           {opportunitiesMatch && (
@@ -449,7 +423,7 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                               <div style={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#7A5200', marginBottom: 6 }}>
                                 🎯 Opportunities
                               </div>
-                              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>{opportunitiesMatch[1].replace(/\*\*/g, '').trim()}</p>
+                              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>{opportunitiesMatch[1].trim()}</p>
                             </div>
                           )}
                           {drillsMatch && (
@@ -458,7 +432,7 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                                 🏋️ Recommended Drills
                               </div>
                               {drillsMatch[1].trim().split('\n').filter(l => l.trim()).map((line, j) => (
-                                <p key={j} style={{ margin: '0 0 6px 0', fontSize: 13, lineHeight: 1.6 }}>{line.replace(/\*\*/g, '').trim()}</p>
+                                <p key={j} style={{ margin: '0 0 6px 0', fontSize: 13, lineHeight: 1.6 }}>{line.trim()}</p>
                               ))}
                             </div>
                           )}
