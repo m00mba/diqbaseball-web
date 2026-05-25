@@ -49,14 +49,6 @@ export default function AdminPortal() {
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
-  // Edit user modal
-  const [editingUser, setEditingUser] = useState<UserRecord | null>(null)
-  const [editName, setEditName] = useState('')
-  const [editEmail, setEditEmail] = useState('')
-  const [editPassword, setEditPassword] = useState('')
-  const [editRole, setEditRole] = useState('')
-  const [saving, setSaving] = useState(false)
-
   // Create account
   const [createName, setCreateName] = useState('')
   const [createEmail, setCreateEmail] = useState('')
@@ -110,41 +102,6 @@ export default function AdminPortal() {
     if (tab === 'facilities') loadFacilities()
     if (tab === 'users') loadUsers()
   }, [tab])
-
-  function openEdit(user: UserRecord) {
-    setEditingUser(user)
-    setEditName(user.name ?? '')
-    setEditEmail(user.email ?? '')
-    setEditPassword('')
-    setEditRole(user.role ?? '')
-  }
-
-  async function handleSaveEdit() {
-    if (!editingUser) return
-    setSaving(true)
-    try {
-      const res = await fetch('/api/admin/update-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: editingUser.id,
-          name: editName,
-          email: editEmail,
-          password: editPassword || undefined,
-          role: editRole,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      flash(`✅ ${editName} updated`)
-      setEditingUser(null)
-      await loadUsers()
-    } catch (e: unknown) {
-      flash(e instanceof Error ? e.message : 'Failed to update user', true)
-    } finally {
-      setSaving(false)
-    }
-  }
 
   async function handleResetPassword(email: string, userId: string) {
     setActionLoading(userId)
@@ -330,12 +287,6 @@ export default function AdminPortal() {
                       <td>
                         <div className={styles.actions}>
                           <button
-                            className={styles.editBtn}
-                            onClick={() => openEdit(u)}
-                          >
-                            ✏️ Edit
-                          </button>
-                          <button
                             className={styles.resetBtn}
                             onClick={() => handleResetPassword(u.email, u.id)}
                             disabled={actionLoading === u.id}
@@ -478,73 +429,6 @@ export default function AdminPortal() {
           </div>
         )}
       </div>
-
-      {/* ── Edit User Modal ── */}
-      {editingUser && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-        }}>
-          <div style={{
-            background: '#fff', borderRadius: 14, padding: 32,
-            width: '100%', maxWidth: 440, boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-          }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 17, fontWeight: 700, color: '#042C53' }}>
-              Edit User
-            </h3>
-
-            {[
-              { label: 'Full Name', value: editName, setter: setEditName, type: 'text', placeholder: 'John Smith' },
-              { label: 'Email', value: editEmail, setter: setEditEmail, type: 'email', placeholder: 'john@example.com' },
-              { label: 'New Password (leave blank to keep current)', value: editPassword, setter: setEditPassword, type: 'password', placeholder: '••••••••' },
-            ].map(({ label, value, setter, type, placeholder }) => (
-              <div key={label} style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5 }}>
-                  {label}
-                </label>
-                <input
-                  style={{ width: '100%', padding: '9px 13px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' as const }}
-                  type={type}
-                  value={value}
-                  onChange={e => setter(e.target.value)}
-                  placeholder={placeholder}
-                />
-              </div>
-            ))}
-
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5 }}>
-                Role
-              </label>
-              <select
-                style={{ width: '100%', padding: '9px 13px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, background: '#fff' }}
-                value={editRole}
-                onChange={e => setEditRole(e.target.value)}
-              >
-                {['player', 'coach', 'scout', 'facility'].map(r => (
-                  <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                style={{ flex: 1, padding: 11, background: '#f4f3ef', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, cursor: 'pointer', color: '#73726c' }}
-                onClick={() => setEditingUser(null)}
-              >
-                Cancel
-              </button>
-              <button
-                style={{ flex: 2, padding: 11, background: saving ? '#73726c' : '#185FA5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}
-                onClick={handleSaveEdit}
-                disabled={saving}
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
