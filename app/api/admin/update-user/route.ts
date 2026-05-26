@@ -12,12 +12,7 @@ export async function POST(req: NextRequest) {
     const { userId, name, email, password, role } = await req.json()
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
 
-    // Check env vars are present
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY not set' }, { status: 500 })
-    }
-
-    // Update public users table first (safer, no email confirmation issues)
+    // Update public users table first
     const publicUpdates: { name?: string; email?: string; role?: string } = {}
     if (name) publicUpdates.name = name
     if (email) publicUpdates.email = email
@@ -31,14 +26,32 @@ export async function POST(req: NextRequest) {
       if (userError) return NextResponse.json({ error: `users table: ${userError.message}` }, { status: 500 })
     }
 
-    // Update auth (email and/or password)
+    // For auth updates, look up the auth user by their current email
     const authUpdates: { email?: string; password?: string } = {}
     if (email) authUpdates.email = email
     if (password && password.length >= 8) authUpdates.password = password
 
     if (Object.keys(authUpdates).length > 0) {
+      // Try by userId first
       const { error: authError } = await adminClient.auth.admin.updateUserById(userId, authUpdates)
-      if (authError) return NextResponse.json({ error: `auth update: ${authError.message}` }, { status: 500 })
+      
+      if (authError) {
+        // Fall back to looking up by current email from users table
+        const { data: userData } = await adminClient
+          .from('users')
+          .select('email')
+          .eq('id', userId)
+          .single()
+
+        if (userData?.email) {
+          const { data: authList } = await adminClient.auth.admin.listUsers()
+          const authUser = authList?.users?.find(u => u.email === userData.email)
+          if (authUser) {
+            const { error: retryError } = await adminClient.auth.admin.updateUserById(authUser.id, authUpdates)
+            if (retryError) return NextResponse.json({ error: `auth retry: ${retryError.message}` }, { status: 500 })
+          }
+        }
+      }
     }
 
     return NextResponse.json({ success: true })
