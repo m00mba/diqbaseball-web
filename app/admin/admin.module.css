@@ -147,6 +147,32 @@
 
 .actions { display: flex; gap: 6px; align-items: center; }
 
+.profileBtn {
+  padding: 5px 10px;
+  background: #E8F5E9;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #27500A;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.profileBtn:hover { background: #d4edda; }
+
+.parentBtn {
+  padding: 5px 10px;
+  background: #FFF3E0;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #7A5200;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.parentBtn:hover { background: #ffe0b2; }
+
 .pwBtn {
   padding: 5px 10px;
   background: #E8F5E9;

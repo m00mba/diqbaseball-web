@@ -16,6 +16,10 @@ interface UserRecord {
   role: string
   verified: boolean
   created_at: string
+  player_profile?: {
+    parent_token: string | null
+    public_slug: string | null
+  }
 }
 
 interface FacilityRecord {
@@ -94,10 +98,10 @@ export default function AdminPortal() {
     setUsersLoading(true)
     const { data } = await supabase
       .from('users')
-      .select('id, name, email, role, verified, created_at')
+      .select('id, name, email, role, verified, created_at, player_profile:player_profiles(parent_token, public_slug)')
       .order('created_at', { ascending: false })
       .limit(200)
-    setUsers(data ?? [])
+    setUsers((data as unknown as UserRecord[]) ?? [])
     setUsersLoading(false)
   }
 
@@ -381,6 +385,26 @@ export default function AdminPortal() {
                           >
                             🔐 Set PW
                           </button>
+                          {u.role === 'player' && u.player_profile?.parent_token && (
+                            <button
+                              className={styles.parentBtn}
+                              onClick={() => {
+                                const link = `https://www.iqbio.io/parent/${u.player_profile!.parent_token}`
+                                navigator.clipboard.writeText(link)
+                                flash(`✅ Parent link copied for ${u.name}`)
+                              }}
+                            >
+                              👨‍👦 Parent Link
+                            </button>
+                          )}
+                          {u.role === 'player' && u.player_profile?.public_slug && (
+                            <button
+                              className={styles.profileBtn}
+                              onClick={() => window.open(`https://www.iqbio.io/player/${u.player_profile!.public_slug}`, '_blank')}
+                            >
+                              👤 Profile
+                            </button>
+                          )}
                           <button
                             className={styles.resetBtn}
                             onClick={() => handleResetPassword(u.email, u.id)}
