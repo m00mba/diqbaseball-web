@@ -134,7 +134,14 @@ export default function AdminPortal() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      flash(`✅ Password set for ${setPasswordUser.name}`)
+      
+      if (data.recoveryLink) {
+        // Open recovery link in new tab — admin sets password there
+        window.open(data.recoveryLink, '_blank')
+        flash(`✅ Recovery link opened for ${setPasswordUser.name} — set the password in the new tab`)
+      } else {
+        flash(`✅ Password set for ${setPasswordUser.name}`)
+      }
       setSetPasswordUser(null)
       setNewPassword('')
     } catch (e: unknown) {
