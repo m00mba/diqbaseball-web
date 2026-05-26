@@ -3,7 +3,10 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import styles from './parent.module.css'
 
-export default function ParentView({ params }: { params: { token: string } }) {
+import { use } from 'react'
+
+export default function ParentView({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = use(params)
   const [player, setPlayer] = useState<any>(null)
   const [sessions, setSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,7 +27,7 @@ export default function ParentView({ params }: { params: { token: string } }) {
 
   useEffect(() => {
     loadProfile()
-  }, [params.token])
+  }, [token])
 
   async function loadProfile() {
     setLoading(true)
@@ -37,7 +40,7 @@ export default function ParentView({ params }: { params: { token: string } }) {
         hs_team:teams!hs_team_id(name),
         travel_team:teams!travel_team_id(name)
       `)
-      .eq('parent_token', params.token)
+      .eq('parent_token', token)
       .single()
 
     if (error || !profile) {

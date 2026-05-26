@@ -19,7 +19,10 @@ const METRIC_UNITS: Record<string, string> = {
   fb_velo: 'mph', hittrax_avg: '', hittrax_slg: '',
 }
 
-export default function PlayerPublicProfile({ params }: { params: { slug: string } }) {
+import { use } from 'react'
+
+export default function PlayerPublicProfile({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
   const [player, setPlayer] = useState<any>(null)
   const [sessions, setSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -28,7 +31,7 @@ export default function PlayerPublicProfile({ params }: { params: { slug: string
 
   useEffect(() => {
     loadProfile()
-  }, [params.slug])
+  }, [slug])
 
   async function loadProfile() {
     setLoading(true)
@@ -42,7 +45,7 @@ export default function PlayerPublicProfile({ params }: { params: { slug: string
         hs_team:teams!hs_team_id(name),
         travel_team:teams!travel_team_id(name)
       `)
-      .eq('public_slug', params.slug)
+      .eq('public_slug', slug)
       .single()
 
     if (error || !profile) {
