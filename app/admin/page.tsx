@@ -57,6 +57,11 @@ export default function AdminPortal() {
   const [editRole, setEditRole] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // Set password modal
+  const [setPasswordUser, setSetPasswordUser] = useState<UserRecord | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [settingPassword, setSettingPassword] = useState(false)
+
   // Create account
   const [createName, setCreateName] = useState('')
   const [createEmail, setCreateEmail] = useState('')
@@ -110,6 +115,34 @@ export default function AdminPortal() {
     if (tab === 'facilities') loadFacilities()
     if (tab === 'users') loadUsers()
   }, [tab])
+
+  async function handleSetPassword() {
+    if (!setPasswordUser) return
+    if (!newPassword || newPassword.length < 8) {
+      flash('Password must be at least 8 characters', true)
+      return
+    }
+    setSettingPassword(true)
+    try {
+      const res = await fetch('/api/admin/update-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: setPasswordUser.id,
+          password: newPassword,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      flash(`✅ Password set for ${setPasswordUser.name}`)
+      setSetPasswordUser(null)
+      setNewPassword('')
+    } catch (e: unknown) {
+      flash(e instanceof Error ? e.message : 'Failed to set password', true)
+    } finally {
+      setSettingPassword(false)
+    }
+  }
 
   function openEdit(user: UserRecord) {
     setEditingUser(user)
@@ -336,6 +369,12 @@ export default function AdminPortal() {
                             ✏️ Edit
                           </button>
                           <button
+                            className={styles.pwBtn}
+                            onClick={() => { setSetPasswordUser(u); setNewPassword('') }}
+                          >
+                            🔐 Set PW
+                          </button>
+                          <button
                             className={styles.resetBtn}
                             onClick={() => handleResetPassword(u.email, u.id)}
                             disabled={actionLoading === u.id}
@@ -478,6 +517,56 @@ export default function AdminPortal() {
           </div>
         )}
       </div>
+
+      {/* ── Set Password Modal ── */}
+      {setPasswordUser && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 14, padding: 32,
+            width: '100%', maxWidth: 400, boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+          }}>
+            <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 700, color: '#042C53' }}>
+              Set Password
+            </h3>
+            <p style={{ margin: '0 0 20px', fontSize: 13, color: '#73726c' }}>
+              {setPasswordUser.name} · {setPasswordUser.email}
+            </p>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>
+                New Password (min 8 characters)
+              </label>
+              <input
+                style={{ width: '100%', padding: '10px 14px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' as const }}
+                type="text"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                autoFocus
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                style={{ flex: 1, padding: 11, background: '#f4f3ef', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, cursor: 'pointer', color: '#73726c' }}
+                onClick={() => { setSetPasswordUser(null); setNewPassword('') }}
+              >
+                Cancel
+              </button>
+              <button
+                style={{ flex: 2, padding: 11, background: settingPassword ? '#73726c' : '#185FA5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: settingPassword ? 'not-allowed' : 'pointer' }}
+                onClick={handleSetPassword}
+                disabled={settingPassword}
+              >
+                {settingPassword ? 'Setting...' : 'Set Password'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Edit User Modal ── */}
       {editingUser && (
