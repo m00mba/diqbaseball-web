@@ -41,9 +41,7 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
       .from('player_profiles')
       .select(`
         *,
-        user:users(name, email),
-        hs_team:teams!hs_team_id(name),
-        travel_team:teams!travel_team_id(name)
+        user:users(name, email)
       `)
       .eq('public_slug', slug)
       .single()
@@ -128,8 +126,8 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
                 {player.weight_lbs && <span className={styles.metaTag}>{player.weight_lbs} lbs</span>}
               </div>
               <div className={styles.schoolInfo}>
-                {player.hs_team?.name && <span>🏫 {player.hs_team.name}</span>}
-                {player.travel_team?.name && <span>⚾ {player.travel_team.name}</span>}
+                {player.high_school && <span>🏫 {player.high_school}</span>}
+                {player.travel_team && <span>⚾ {player.travel_team}</span>}
                 {player.state && <span>📍 {player.state}</span>}
               </div>
             </div>
