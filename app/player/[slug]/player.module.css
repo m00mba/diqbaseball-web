@@ -1,0 +1,265 @@
+.page {
+  min-height: 100vh;
+  background: #f4f3ef;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.loadingPage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f3ef;
+}
+
+.loadingDot {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e5e5;
+  border-top-color: #185FA5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.notFound {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f4f3ef;
+  text-align: center;
+  padding: 32px;
+}
+
+.notFoundIcon { font-size: 48px; margin-bottom: 16px; }
+.notFound h2 { font-size: 22px; font-weight: 700; color: #042C53; margin: 0 0 8px; }
+.notFound p { font-size: 14px; color: #73726c; }
+
+.header {
+  background: #042C53;
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.headerLogo { display: flex; flex-direction: column; }
+.logoText { color: #fff; font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+.logoTagline { color: #B5D4F4; font-size: 11px; }
+
+.shareBtn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.shareBtn:hover { background: rgba(255,255,255,0.25); }
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.hero {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.heroLeft { display: flex; align-items: flex-start; gap: 20px; flex: 1; }
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #E6F1FB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatarImg { width: 100%; height: 100%; object-fit: cover; }
+.avatarInitial { font-size: 32px; font-weight: 700; color: #185FA5; }
+
+.playerName {
+  font-size: 26px;
+  font-weight: 800;
+  color: #042C53;
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.playerMeta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+
+.metaTag {
+  background: #F0F7FF;
+  color: #185FA5;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.schoolInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #73726c;
+}
+
+.heroRight { flex-shrink: 0; }
+
+.diqScore {
+  background: #042C53;
+  border-radius: 12px;
+  padding: 16px 24px;
+  text-align: center;
+  min-width: 100px;
+}
+
+.diqScoreValue { font-size: 32px; font-weight: 800; color: #fff; line-height: 1; }
+.diqScoreLabel { font-size: 11px; color: #B5D4F4; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #042C53;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 16px;
+}
+
+.cardTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.verifiedBadge {
+  background: #E8F5E9;
+  color: #27500A;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.verifiedDate { font-size: 11px; color: #73726c; margin: 0 0 16px; }
+
+.bio { font-size: 14px; color: #3a3a3a; line-height: 1.7; margin: 0; }
+
+.academicRow { display: flex; gap: 24px; }
+.acadStat { display: flex; flex-direction: column; align-items: center; }
+.acadValue { font-size: 24px; font-weight: 700; color: #042C53; }
+.acadLabel { font-size: 11px; color: #73726c; text-transform: uppercase; letter-spacing: 0.4px; }
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.metricCard {
+  background: #f8f8f7;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+
+.metricValue { font-size: 20px; font-weight: 700; color: #042C53; }
+.metricLabel { font-size: 10px; color: #73726c; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+.aiReport {
+  background: #F0F7FF;
+  border-radius: 10px;
+  border: 0.5px solid #B5D4F4;
+  padding: 16px;
+  margin-top: 4px;
+}
+
+.aiSectionTitle {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.aiSection { margin-bottom: 10px; }
+
+.aiSectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+
+.aiText { font-size: 13px; color: #1a1a1a; line-height: 1.6; margin: 0; }
+
+.sessionHistory { margin-top: 16px; border-top: 1px solid #f0f0f0; padding-top: 16px; }
+.sessionHistoryTitle { font-size: 11px; font-weight: 600; color: #73726c; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px; }
+
+.sessionRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 0.5px solid #f4f3ef;
+  font-size: 13px;
+}
+
+.sessionDate { color: #73726c; min-width: 90px; }
+.sessionFacility { color: #1a1a1a; flex: 1; }
+.sessionMetric { background: #E6F1FB; color: #185FA5; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 500; }
+
+.footer {
+  text-align: center;
+  padding: 32px 0 16px;
+}
+
+.footerLogo { font-size: 16px; font-weight: 800; color: #042C53; margin-bottom: 6px; }
+.footerText { font-size: 12px; color: #73726c; margin: 0; }
+.footerLink { color: #185FA5; text-decoration: none; }
+.footerLink:hover { text-decoration: underline; }
+
+@media (max-width: 600px) {
+  .hero { flex-direction: column; }
+  .heroLeft { flex-direction: column; align-items: center; text-align: center; }
+  .playerMeta { justify-content: center; }
+  .schoolInfo { justify-content: center; }
+  .heroRight { width: 100%; display: flex; justify-content: center; }
+  .container { padding: 16px; }
+  .metricsGrid { grid-template-columns: repeat(3, 1fr); }
+}

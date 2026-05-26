@@ -1,0 +1,248 @@
+.page {
+  min-height: 100vh;
+  background: #f4f3ef;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.loadingPage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f3ef;
+}
+
+.loadingDot {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e5e5;
+  border-top-color: #185FA5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.notFound {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f4f3ef;
+  text-align: center;
+  padding: 32px;
+}
+
+.notFoundIcon { font-size: 48px; margin-bottom: 16px; }
+.notFound h2 { font-size: 22px; font-weight: 700; color: #042C53; margin: 0 0 8px; }
+.notFound p { font-size: 14px; color: #73726c; }
+
+.header {
+  background: #042C53;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+}
+
+.headerLogo { display: flex; flex-direction: column; }
+.logoText { color: #fff; font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+.logoTagline { color: #B5D4F4; font-size: 11px; }
+
+.container { max-width: 600px; margin: 0 auto; padding: 24px 16px; }
+
+.successBar {
+  background: #E8F5E9;
+  color: #1B5E20;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.hero {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #E6F1FB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatarImg { width: 100%; height: 100%; object-fit: cover; }
+.avatarInitial { font-size: 26px; font-weight: 700; color: #185FA5; }
+
+.playerName { font-size: 22px; font-weight: 800; color: #042C53; margin: 0 0 6px; }
+.playerMeta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+
+.metaTag {
+  background: #F0F7FF;
+  color: #185FA5;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.diqScore { font-size: 13px; color: #73726c; }
+.diqValue { font-size: 18px; font-weight: 700; color: #042C53; }
+.diqLabel { font-weight: 400; }
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.cardTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #042C53;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 4px;
+}
+
+.sessionMeta { font-size: 12px; color: #73726c; margin: 0 0 14px; }
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.metric {
+  background: #f8f8f7;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+}
+
+.metricVal { display: block; font-size: 17px; font-weight: 700; color: #042C53; }
+.metricLbl { display: block; font-size: 9px; color: #73726c; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+
+.aiBox {
+  background: #F0F7FF;
+  border-radius: 8px;
+  border: 0.5px solid #B5D4F4;
+  padding: 12px;
+}
+
+.aiTitle { font-size: 11px; font-weight: 700; color: #042C53; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+.aiText { font-size: 12px; color: #1a1a1a; line-height: 1.6; margin: 0; }
+
+.sessionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 0.5px solid #f4f3ef;
+}
+
+.sessionFacility { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+.sessionDate { font-size: 11px; color: #73726c; margin-top: 2px; }
+.sessionMetrics { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.sessionBadge { background: #E6F1FB; color: #185FA5; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 500; }
+
+.logGameHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.logGameSubtitle { font-size: 12px; color: #73726c; margin: 2px 0 0; }
+
+.logGameBtn {
+  background: #185FA5;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.logGameBtn:hover { background: #1470b8; }
+
+.logForm { margin-top: 16px; }
+
+.formRow { display: flex; gap: 10px; margin-bottom: 14px; }
+.formGroup { flex: 1; }
+
+.label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #73726c;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 5px;
+}
+
+.input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.statInput { display: flex; flex-direction: column; align-items: center; }
+.statLabel { font-size: 11px; font-weight: 600; color: #73726c; margin-bottom: 4px; }
+.statField {
+  width: 100%;
+  padding: 8px 4px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #042C53;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.saveBtn {
+  width: 100%;
+  padding: 12px;
+  background: #185FA5;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.saveBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.footer { text-align: center; padding: 24px 0 8px; }
+.footerText { font-size: 12px; color: #B4B2A9; margin: 0; }
