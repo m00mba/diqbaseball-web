@@ -59,6 +59,9 @@ export default function FacilitySessions() {
   const [successMsg, setSuccessMsg] = useState('')
   const [searchName, setSearchName] = useState('')
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null)
+  const [editSessionType, setEditSessionType] = useState<string>('tee')
+  const [editPitchSpeed, setEditPitchSpeed] = useState<string>('')
+  const [savingSessionType, setSavingSessionType] = useState(false)
 
   const canRegenerate = currentUserEmail === 'kod@42labs.org'
 
@@ -121,6 +124,8 @@ export default function FacilitySessions() {
     setAiReport(null)
     setAiReportDate(null)
     setEditNotes(session.notes ?? '')
+    setEditSessionType(session.session_type ?? 'tee')
+    setEditPitchSpeed(session.avg_pitch_speed ? String(session.avg_pitch_speed) : '')
 
     // Load other sessions for this player at this facility
     const { data } = await supabase
@@ -139,6 +144,25 @@ export default function FacilitySessions() {
       setAiReport(session.ai_report)
       setAiReportDate(session.ai_report_generated_at)
     }
+  }
+
+  async function saveSessionType() {
+    if (!selectedSession) return
+    setSavingSessionType(true)
+    const updates: any = { session_type: editSessionType }
+    if (editSessionType !== 'tee' && editPitchSpeed) {
+      updates.avg_pitch_speed = parseFloat(editPitchSpeed)
+    } else {
+      updates.avg_pitch_speed = null
+    }
+    await supabase.from('verified_measurables')
+      .update(updates)
+      .eq('id', selectedSession.id)
+    setSelectedSession(prev => prev ? { ...prev, ...updates } : null)
+    setSessions(prev => prev.map(s => s.id === selectedSession.id ? { ...s, ...updates } : s))
+    setSavingSessionType(false)
+    setSuccessMsg('✅ Session type saved')
+    setTimeout(() => setSuccessMsg(''), 2000)
   }
 
   async function saveNotes() {
@@ -184,6 +208,10 @@ export default function FacilitySessions() {
       compareText = `\n\nPrevious session (${new Date(compareSession.verified_at).toLocaleDateString()}):\n${prev}`
     }
 
+    const sessionContext = selectedSession.session_type
+      ? `Session type: ${selectedSession.session_type === 'tee' ? 'Off Tee' : selectedSession.session_type === 'front_toss' ? 'Front Toss' : selectedSession.session_type === 'machine' ? 'Pitching Machine' : 'Live Pitching'}${selectedSession.avg_pitch_speed ? ` at ${selectedSession.avg_pitch_speed} mph avg` : ''}`
+      : 'Session type: Unknown'
+
     const prompt = compareSession
       ? `You are a professional baseball development coach analyzing HitTrax session data for ${selectedSession.player_name} at ${facilityProfile?.name}.
 
@@ -195,7 +223,7 @@ OPPORTUNITIES: In 2-3 sentences, identify what metrics are weak or regressing an
 
 RECOMMENDED DRILLS: For each opportunity identified above, prescribe one specific drill that directly targets that weakness. Name the drill, state which metric it addresses, and briefly describe it. Only prescribe drills tied to actual weaknesses in the data.
 
-Current session (${new Date(selectedSession.verified_at).toLocaleDateString()}):
+Current session (${new Date(selectedSession.verified_at).toLocaleDateString()}) — ${sessionContext}:
 ${metrics}${compareText}`
       : `You are a professional baseball development coach analyzing HitTrax session data for ${selectedSession.player_name} at ${facilityProfile?.name}.
 
@@ -207,7 +235,7 @@ OPPORTUNITIES: In 2-3 sentences, identify the weakest metrics and what they reve
 
 RECOMMENDED DRILLS: For each opportunity identified above, prescribe one specific drill that directly targets that weakness. Name the drill, state which metric it addresses and why that number indicates a weakness, and briefly describe the drill. Only prescribe drills tied to actual weaknesses — do not pad with generic advice.
 
-Session (${new Date(selectedSession.verified_at).toLocaleDateString()}):
+Session (${new Date(selectedSession.verified_at).toLocaleDateString()}) — ${sessionContext}:
 ${metrics}
 ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
 
@@ -327,6 +355,8 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                   <h2 className={styles.detailName}>{selectedSession.player_name}</h2>
                   <p className={styles.detailMeta}>
                     {new Date(selectedSession.verified_at).toLocaleDateString()} · {selectedSession.equipment ?? 'Manual entry'}
+                    {selectedSession.session_type && ` · ${selectedSession.session_type === 'tee' ? 'Off Tee' : selectedSession.session_type === 'front_toss' ? 'Front Toss' : selectedSession.session_type === 'machine' ? 'Machine' : 'Live Pitching'}`}
+                    {selectedSession.avg_pitch_speed && ` @ ${selectedSession.avg_pitch_speed} mph`}
                   </p>
                 </div>
                 <button className={styles.deleteBtn} onClick={deleteSession} disabled={deleting}>
@@ -341,6 +371,50 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
                     <div className={styles.metricLabel}>{label}</div>
                   </div>
                 ))}
+              </div>
+
+              <div className={styles.section}>
+                <h3 className={styles.sectionTitle}>Session Type</h3>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                  {[
+                    { value: 'tee', label: '🟡 Off Tee' },
+                    { value: 'front_toss', label: '🤾 Front Toss' },
+                    { value: 'machine', label: '⚙️ Machine' },
+                    { value: 'live_pitching', label: '⚾ Live Pitching' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setEditSessionType(opt.value)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: 8,
+                        border: `1.5px solid ${editSessionType === opt.value ? '#185FA5' : '#ddd'}`,
+                        background: editSessionType === opt.value ? '#185FA5' : '#fff',
+                        color: editSessionType === opt.value ? '#fff' : '#73726c',
+                        fontSize: 13,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {editSessionType !== 'tee' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <label style={{ fontSize: 12, color: '#73726c', whiteSpace: 'nowrap' }}>Avg Pitch Speed (mph):</label>
+                    <input
+                      type="number"
+                      value={editPitchSpeed}
+                      onChange={e => setEditPitchSpeed(e.target.value)}
+                      placeholder="e.g. 65"
+                      style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, width: 90 }}
+                    />
+                  </div>
+                )}
+                <button className={styles.saveNotesBtn} onClick={saveSessionType} disabled={savingSessionType}>
+                  {savingSessionType ? 'Saving...' : 'Save Session Type'}
+                </button>
               </div>
 
               <div className={styles.section}>
