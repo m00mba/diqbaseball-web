@@ -13,6 +13,7 @@ export default function Home() {
           <span className={styles.navLogoBadge}>BASEBALL</span>
         </a>
         <div className={styles.navLinks}>
+          <Link href="/facilities" className={styles.navLink}>Find Facilities</Link>
           <Link href="/facility/login" className={styles.navLink}>Facility Portal</Link>
           <Link href="#download" className={styles.navCta}>Download App</Link>
         </div>
@@ -32,7 +33,7 @@ export default function Home() {
           </p>
           <div className={styles.heroCtas}>
             <a href="#download" className={styles.btnPrimary}>Get the App</a>
-            <Link href="/facility/login" className={styles.btnSecondary}>Facility Portal</Link>
+            <Link href="/facilities" className={styles.btnSecondary}>Find a Facility</Link>
           </div>
         </div>
         <div className={styles.heroStats}>
@@ -83,6 +84,34 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FIND A FACILITY */}
+      <section className={styles.facilities} id="facilities">
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionLabel}>Get Verified</div>
+          <h2 className={styles.sectionTitle}>Find a Verified Facility Near You</h2>
+          <p className={styles.facilitiesSub}>
+            Diamond IQ Verified Partners have the technology and expertise to verify your measurables — giving your recruiting profile the credibility college coaches trust.
+          </p>
+          <div className={styles.facilityFeatures}>
+            {[
+              { icon: '⚾', label: 'HitTrax', desc: 'Exit velo, bat speed, launch angle' },
+              { icon: '📡', label: 'Rapsodo', desc: 'Pitch velocity, spin rate, movement' },
+              { icon: '💥', label: 'Blast Motion', desc: 'Swing mechanics, attack angle' },
+              { icon: '📊', label: 'TrackMan', desc: 'Advanced pitch & hit analytics' },
+            ].map(({ icon, label, desc }) => (
+              <div key={label} className={styles.facilityFeatureCard}>
+                <div className={styles.facilityFeatureIcon}>{icon}</div>
+                <div className={styles.facilityFeatureLabel}>{label}</div>
+                <div className={styles.facilityFeatureDesc}>{desc}</div>
+              </div>
+            ))}
+          </div>
+          <Link href="/facilities" className={styles.btnFindFacility}>
+            🏟 Find a Facility Near You →
+          </Link>
+        </div>
+      </section>
+
       {/* ROLES */}
       <section className={styles.roles}>
         <div className={styles.sectionInner}>
@@ -128,8 +157,9 @@ export default function Home() {
         <div className={styles.footerInner}>
           <div className={styles.footerLogo}>Diamond IQ Baseball</div>
           <div className={styles.footerLinks}>
+            <Link href="/facilities">Find Facilities</Link>
             <Link href="/facility/login">Facility Portal</Link>
-            <a href="mailto:kelly@iqbio.io">Contact</a>
+            <a href="mailto:kelly@destroyersbaseball.org">Contact</a>
           </div>
           <div className={styles.footerCopy}>© 2026 Diamond IQ Baseball. All rights reserved.</div>
         </div>
