@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { facilityAuth } from '@/lib/facilityAuth'
 
 const EQUIPMENT_OPTIONS = [
   { value: 'HitTrax', label: '⚾ HitTrax', description: 'Bat speed, exit velo, launch angle, ball flight' },
