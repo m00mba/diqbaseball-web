@@ -375,3 +375,19 @@
   .main { padding: 20px 16px; }
   .header { padding: 0 16px; }
 }
+.addSessionBtn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  background: #185FA5;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.addSessionBtn:hover {
+  background: #1470b8;
+}

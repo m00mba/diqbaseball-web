@@ -32,6 +32,38 @@ const METRIC_UNITS: Record<string, string> = {
   arm_velo: 'mph', sixty_time: 's', fb_velo: 'mph', fb_spin_rate: 'rpm',
 }
 
+const MANUAL_FIELDS: Record<string, { key: string; label: string; unit: string }[]> = {
+  blast: [
+    { key: 'bat_speed', label: 'Bat Speed', unit: 'mph' },
+    { key: 'attack_angle', label: 'Attack Angle', unit: '°' },
+    { key: 'time_to_contact', label: 'Time to Contact', unit: 's' },
+    { key: 'on_plane_efficiency', label: 'On-Plane Efficiency', unit: '%' },
+    { key: 'power_index', label: 'Power Index', unit: '' },
+    { key: 'exit_velo', label: 'Exit Velo', unit: 'mph' },
+  ],
+  diamond_kinetics: [
+    { key: 'bat_speed', label: 'Bat Speed', unit: 'mph' },
+    { key: 'smash_factor', label: 'Smash Factor', unit: '' },
+    { key: 'peak_hand_speed', label: 'Peak Hand Speed', unit: 'mph' },
+    { key: 'connection_at_impact', label: 'Connection at Impact', unit: '°' },
+    { key: 'exit_velo', label: 'Exit Velo', unit: 'mph' },
+  ],
+  trackman: [
+    { key: 'fb_velo', label: 'Pitch Velo', unit: 'mph' },
+    { key: 'pitch_spin_rate', label: 'Spin Rate', unit: 'rpm' },
+    { key: 'pitch_extension', label: 'Extension', unit: 'ft' },
+    { key: 'vertical_break', label: 'Vertical Break', unit: 'in' },
+    { key: 'horizontal_break', label: 'Horizontal Break', unit: 'in' },
+  ],
+  manual: [
+    { key: 'exit_velo', label: 'Exit Velo', unit: 'mph' },
+    { key: 'bat_speed', label: 'Bat Speed', unit: 'mph' },
+    { key: 'arm_velo', label: 'Arm Velo', unit: 'mph' },
+    { key: 'sixty_time', label: '60 Time', unit: 's' },
+    { key: 'fb_velo', label: 'FB Velo', unit: 'mph' },
+  ],
+}
+
 interface Session {
   id: string
   player_id: string
@@ -62,6 +94,20 @@ export default function FacilitySessions() {
   const [editSessionType, setEditSessionType] = useState<string>('tee')
   const [editPitchSpeed, setEditPitchSpeed] = useState<string>('')
   const [savingSessionType, setSavingSessionType] = useState(false)
+
+  // Manual session form
+  const [showManualForm, setShowManualForm] = useState(false)
+  const [manualEquipment, setManualEquipment] = useState('blast')
+  const [manualPlayer, setManualPlayer] = useState('')
+  const [manualPlayerResults, setManualPlayerResults] = useState<any[]>([])
+  const [manualPlayerId, setManualPlayerId] = useState('')
+  const [manualPlayerName, setManualPlayerName] = useState('')
+  const [manualDate, setManualDate] = useState(new Date().toISOString().slice(0, 10))
+  const [manualSessionType, setManualSessionType] = useState('tee')
+  const [manualPitchSpeed, setManualPitchSpeed] = useState('')
+  const [manualMetrics, setManualMetrics] = useState<Record<string, string>>({})
+  const [manualNotes, setManualNotes] = useState('')
+  const [savingManual, setSavingManual] = useState(false)
 
   const canRegenerate = currentUserEmail === 'kod@42labs.org'
 
@@ -143,6 +189,49 @@ export default function FacilitySessions() {
     if (session.ai_report) {
       setAiReport(session.ai_report)
       setAiReportDate(session.ai_report_generated_at)
+    }
+  }
+
+  async function searchManualPlayer(q: string) {
+    setManualPlayer(q)
+    if (q.length < 2) { setManualPlayerResults([]); return }
+    const { data } = await supabase
+      .from('users')
+      .select('id, name, player_profile:player_profiles(id)')
+      .ilike('name', `%${q}%`)
+      .eq('role', 'player')
+      .limit(5)
+    setManualPlayerResults(data ?? [])
+  }
+
+  async function saveManualSession() {
+    if (!manualPlayerId) { alert('Please select a player'); return }
+    setSavingManual(true)
+    try {
+      const insert: any = {
+        facility_id: facilityProfile.id,
+        player_id: manualPlayerId,
+        verified_at: new Date(manualDate).toISOString(),
+        equipment: manualEquipment,
+        session_type: manualSessionType,
+        avg_pitch_speed: manualSessionType !== 'tee' && manualPitchSpeed ? parseFloat(manualPitchSpeed) : null,
+        notes: manualNotes || null,
+      }
+      // Add metrics
+      Object.entries(manualMetrics).forEach(([key, val]) => {
+        if (val !== '') insert[key] = parseFloat(val)
+      })
+      const { error } = await supabase.from('verified_measurables').insert(insert)
+      if (error) throw error
+      setShowManualForm(false)
+      setManualPlayer(''); setManualPlayerId(''); setManualPlayerName('')
+      setManualMetrics({}); setManualNotes(''); setManualPitchSpeed('')
+      setManualDate(new Date().toISOString().slice(0, 10))
+      loadSessions(facilityProfile.id)
+    } catch (e: any) {
+      alert(`Error: ${e.message}`)
+    } finally {
+      setSavingManual(false)
     }
   }
 
@@ -314,6 +403,12 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
               value={searchName}
               onChange={e => setSearchName(e.target.value)}
             />
+            <button
+              className={styles.addSessionBtn}
+              onClick={() => setShowManualForm(true)}
+            >
+              + Add Session
+            </button>
           </div>
 
           {loading ? (
@@ -546,6 +641,155 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
           )}
         </div>
       </div>
+
+      {/* Manual Session Modal */}
+      {showManualForm && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: 24, overflowY: 'auto',
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 14, padding: 32,
+            width: '100%', maxWidth: 560, boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+            maxHeight: '90vh', overflowY: 'auto',
+          }}>
+            <h3 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: '#042C53' }}>
+              Add Manual Session
+            </h3>
+
+            {/* Equipment type */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Technology</label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {[
+                  { value: 'blast', label: '💥 Blast Motion' },
+                  { value: 'diamond_kinetics', label: '💎 Diamond Kinetics' },
+                  { value: 'trackman', label: '📡 TrackMan' },
+                  { value: 'manual', label: '📝 Manual Entry' },
+                ].map(opt => (
+                  <button key={opt.value} onClick={() => { setManualEquipment(opt.value); setManualMetrics({}) }}
+                    style={{
+                      padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                      border: `1.5px solid ${manualEquipment === opt.value ? '#185FA5' : '#ddd'}`,
+                      background: manualEquipment === opt.value ? '#185FA5' : '#fff',
+                      color: manualEquipment === opt.value ? '#fff' : '#73726c',
+                    }}
+                  >{opt.label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Player search */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Player</label>
+              {manualPlayerName ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: '#E6F1FB', borderRadius: 8 }}>
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: '#042C53' }}>{manualPlayerName}</span>
+                  <button onClick={() => { setManualPlayerId(''); setManualPlayerName(''); setManualPlayer('') }}
+                    style={{ background: 'none', border: 'none', color: '#CC2E2E', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                </div>
+              ) : (
+                <div style={{ position: 'relative' }}>
+                  <input
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' as const }}
+                    value={manualPlayer}
+                    onChange={e => searchManualPlayer(e.target.value)}
+                    placeholder="Search player name..."
+                  />
+                  {manualPlayerResults.length > 0 && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ddd', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10 }}>
+                      {manualPlayerResults.map((p: any) => (
+                        <button key={p.id} onClick={() => {
+                          setManualPlayerId(p.player_profile?.[0]?.id ?? p.id)
+                          setManualPlayerName(p.name)
+                          setManualPlayerResults([])
+                          setManualPlayer('')
+                        }}
+                          style={{ width: '100%', padding: '10px 14px', background: 'none', border: 'none', textAlign: 'left', fontSize: 14, cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+                        >{p.name}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Date and session type */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Date</label>
+                <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' as const }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Session Type</label>
+                <select value={manualSessionType} onChange={e => setManualSessionType(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, background: '#fff' }}>
+                  <option value="tee">Off Tee</option>
+                  <option value="front_toss">Front Toss</option>
+                  <option value="machine">Machine</option>
+                  <option value="live_pitching">Live Pitching</option>
+                </select>
+              </div>
+            </div>
+
+            {manualSessionType !== 'tee' && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Avg Pitch Speed (mph)</label>
+                <input type="number" value={manualPitchSpeed} onChange={e => setManualPitchSpeed(e.target.value)}
+                  placeholder="e.g. 65"
+                  style={{ width: 120, padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14 }} />
+              </div>
+            )}
+
+            {/* Dynamic metrics */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 8 }}>Metrics</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                {(MANUAL_FIELDS[manualEquipment] ?? []).map(field => (
+                  <div key={field.key}>
+                    <label style={{ fontSize: 11, color: '#73726c', display: 'block', marginBottom: 3 }}>
+                      {field.label} {field.unit && `(${field.unit})`}
+                    </label>
+                    <input
+                      type="number"
+                      value={manualMetrics[field.key] ?? ''}
+                      onChange={e => setManualMetrics(prev => ({ ...prev, [field.key]: e.target.value }))}
+                      placeholder="—"
+                      style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' as const }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Notes</label>
+              <textarea
+                value={manualNotes}
+                onChange={e => setManualNotes(e.target.value)}
+                placeholder="Session notes..."
+                rows={3}
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setShowManualForm(false)}
+                style={{ flex: 1, padding: 11, background: '#f4f3ef', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, cursor: 'pointer', color: '#73726c' }}
+              >Cancel</button>
+              <button
+                onClick={saveManualSession}
+                disabled={savingManual}
+                style={{ flex: 2, padding: 11, background: savingManual ? '#73726c' : '#185FA5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: savingManual ? 'not-allowed' : 'pointer' }}
+              >{savingManual ? 'Saving...' : 'Save Session'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
