@@ -129,7 +129,7 @@ export default function Home() {
           <div className={styles.footerLogo}>Diamond IQ Baseball</div>
           <div className={styles.footerLinks}>
             <Link href="/facility/login">Facility Portal</Link>
-            <a href="mailto:kelly@destroyersbaseball.org">Contact</a>
+            <a href="mailto:kelly@iqbio.io">Contact</a>
           </div>
           <div className={styles.footerCopy}>© 2026 Diamond IQ Baseball. All rights reserved.</div>
         </div>

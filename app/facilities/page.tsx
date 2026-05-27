@@ -221,7 +221,7 @@ export default function FacilitiesPage() {
             Join Diamond IQ as a verified partner and showcase your technology to players and parents in your area.
           </p>
           <a
-            href="mailto:kelly@destroyersbaseball.org?subject=Diamond IQ Facility Partner Inquiry"
+            href="mailto:kelly@iqbio.io?subject=Diamond IQ Facility Partner Inquiry"
             style={{ display: 'inline-block', background: '#185FA5', color: '#fff', padding: '10px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}
           >
             Become a Verified Partner
