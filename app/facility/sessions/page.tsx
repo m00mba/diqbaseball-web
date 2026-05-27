@@ -33,6 +33,20 @@ const METRIC_UNITS: Record<string, string> = {
 }
 
 const MANUAL_FIELDS: Record<string, { key: string; label: string; unit: string }[]> = {
+  hittrax: [
+    { key: 'exit_velo', label: 'Max Exit Velo', unit: 'mph' },
+    { key: 'avg_exit_velo', label: 'Avg Exit Velo', unit: 'mph' },
+    { key: 'launch_angle', label: 'Launch Angle', unit: '°' },
+    { key: 'hard_hit_avg', label: 'Hard Hit %', unit: '%' },
+    { key: 'bat_speed', label: 'Bat Speed', unit: 'mph' },
+    { key: 'distance', label: 'Avg Distance', unit: 'ft' },
+    { key: 'max_distance', label: 'Max Distance', unit: 'ft' },
+    { key: 'hittrax_avg', label: 'Sim AVG', unit: '' },
+    { key: 'hittrax_slg', label: 'Sim SLG', unit: '' },
+    { key: 'ld_pct', label: 'Line Drive %', unit: '%' },
+    { key: 'gb_pct', label: 'Ground Ball %', unit: '%' },
+    { key: 'fb_pct', label: 'Fly Ball %', unit: '%' },
+  ],
   blast: [
     { key: 'bat_speed', label: 'Bat Speed', unit: 'mph' },
     { key: 'attack_angle', label: 'Attack Angle', unit: '°' },
@@ -97,7 +111,7 @@ export default function FacilitySessions() {
 
   // Manual session form
   const [showManualForm, setShowManualForm] = useState(false)
-  const [manualEquipment, setManualEquipment] = useState('blast')
+  const [manualEquipment, setManualEquipment] = useState('hittrax')
   const [manualPlayer, setManualPlayer] = useState('')
   const [manualPlayerResults, setManualPlayerResults] = useState<any[]>([])
   const [manualPlayerId, setManualPlayerId] = useState('')
@@ -663,6 +677,7 @@ ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
               <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Technology</label>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {[
+                  { value: 'hittrax', label: '⚾ HitTrax' },
                   { value: 'blast', label: '💥 Blast Motion' },
                   { value: 'diamond_kinetics', label: '💎 Diamond Kinetics' },
                   { value: 'trackman', label: '📡 TrackMan' },
