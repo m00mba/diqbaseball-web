@@ -2,326 +2,236 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import styles from './settings.module.css'
+import { facilityAuth } from '@/lib/facilityAuth'
 
-const ALL_EQUIPMENT = ['HitTrax', 'Rapsodo', 'Trackman', 'Blast Motion', 'Yakkertech', 'FlightScope', 'Other']
+const EQUIPMENT_OPTIONS = [
+  { value: 'HitTrax', label: '⚾ HitTrax', description: 'Bat speed, exit velo, launch angle, ball flight' },
+  { value: 'Rapsodo', label: '📡 Rapsodo', description: 'Pitch velocity, spin rate, movement profile' },
+  { value: 'Blast Motion', label: '💥 Blast Motion', description: 'Swing mechanics, attack angle, time to contact' },
+  { value: 'Diamond Kinetics', label: '💎 Diamond Kinetics', description: 'Bat speed, smash factor, hand speed' },
+  { value: 'TrackMan', label: '📊 TrackMan', description: 'Advanced pitch and hit analytics' },
+  { value: 'Edgertronic', label: '🎥 Edgertronic', description: 'High-speed video analysis' },
+  { value: 'K-Vest', label: '🏃 K-Vest', description: 'Kinematic sequencing, body movement' },
+  { value: 'Driveline Plyo', label: '🎯 Driveline Plyo', description: 'Arm care, velocity development' },
+  { value: 'Force Plates', label: '⚡ Force Plates', description: 'Rotational power, ground force' },
+]
 
 export default function FacilitySettings() {
   const router = useRouter()
-  const [facilityProfile, setFacilityProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [facilityId, setFacilityId] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
-  const [staff, setStaff] = useState<any[]>([])
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviting, setInviting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   // Form fields
   const [name, setName] = useState('')
-  const [city, setCity] = useState('')
-  const [state, setState] = useState('NC')
-  const [address, setAddress] = useState('')
   const [bio, setBio] = useState('')
+  const [phone, setPhone] = useState('')
+  const [website, setWebsite] = useState('')
+  const [city, setCity] = useState('')
+  const [state, setState] = useState('')
+  const [address, setAddress] = useState('')
   const [equipment, setEquipment] = useState<string[]>([])
+  const [publicSlug, setPublicSlug] = useState('')
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) { router.push('/facility/login'); return }
-      const userId = data.user.id
+    loadProfile()
+  }, [])
 
-      // Check staff first
-      const { data: staffLink } = await supabase
-        .from('facility_users')
-        .select('*, facility:facility_profiles(*)')
-        .eq('user_id', userId)
+  async function loadProfile() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/facility/login'); return }
+
+    // Check staff first
+    const { data: staffLink } = await supabase
+      .from('facility_users')
+      .select('*, facility:facility_profiles(*)')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    let fp: any = staffLink?.facility ?? null
+
+    if (!fp) {
+      const { data: owned } = await supabase
+        .from('facility_profiles')
+        .select('*')
+        .eq('user_id', user.id)
         .single()
+      fp = owned
+    }
 
-      let fp: any = staffLink?.facility ?? null
+    if (!fp) { router.push('/facility/login'); return }
 
-      // Fall back to owner
-      if (!fp) {
-        const { data: owned } = await supabase
-          .from('facility_profiles')
-          .select('*')
-          .eq('user_id', userId)
-          .single()
-        fp = owned
-      }
+    setFacilityId(fp.id)
+    setName(fp.name ?? '')
+    setBio(fp.bio ?? '')
+    setPhone(fp.phone ?? '')
+    setWebsite(fp.website ?? '')
+    setCity(fp.city ?? '')
+    setState(fp.state ?? '')
+    setAddress(fp.address ?? '')
+    setEquipment(fp.equipment ?? [])
+    setPublicSlug(fp.public_slug ?? '')
+    setLoading(false)
+  }
 
-      if (!fp) { router.push('/facility/login'); return }
-
-      setFacilityProfile(fp)
-      setName(fp.name ?? '')
-      setCity(fp.city ?? '')
-      setState(fp.state ?? 'NC')
-      setAddress(fp.address ?? '')
-      setBio(fp.bio ?? '')
-      setEquipment(fp.equipment ?? [])
-      setLoading(false)
-
-      // Load staff
-      const { data: staffData } = await supabase
-        .from('facility_users')
-        .select('*, user:users(name, email)')
-        .eq('facility_id', fp.id)
-      setStaff(staffData ?? [])
-    })
-  }, [router])
-
-  function toggleEquipment(item: string) {
+  function toggleEquipment(val: string) {
     setEquipment(prev =>
-      prev.includes(item) ? prev.filter(e => e !== item) : [...prev, item]
+      prev.includes(val) ? prev.filter(e => e !== val) : [...prev, val]
     )
   }
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault()
-    if (!name.trim()) { alert('Facility name is required'); return }
+  async function handleSave() {
     setSaving(true)
+    setErrorMsg('')
+    try {
+      const { error } = await supabase
+        .from('facility_profiles')
+        .update({
+          name,
+          bio,
+          phone,
+          website,
+          city,
+          state,
+          address,
+          equipment,
+        })
+        .eq('id', facilityId)
 
-    const { error } = await supabase
-      .from('facility_profiles')
-      .update({ name, city, state, address, bio, equipment })
-      .eq('id', facilityProfile.id)
-
-    if (error) {
-      alert('Error saving: ' + error.message)
+      if (error) throw error
+      setSuccessMsg('✅ Profile saved')
+      setTimeout(() => setSuccessMsg(''), 3000)
+    } catch (e: unknown) {
+      setErrorMsg(e instanceof Error ? e.message : 'Failed to save')
+    } finally {
       setSaving(false)
-      return
     }
-
-    setSuccessMsg('✅ Profile updated successfully')
-    setSaving(false)
-    setTimeout(() => setSuccessMsg(''), 3000)
-  }
-
-  async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.push('/facility/login')
-  }
-
-  async function handlePasswordReset() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user?.email) return
-    const { error } = await supabase.auth.resetPasswordForEmail(user.email)
-    if (error) { alert('Error: ' + error.message); return }
-    setSuccessMsg(`✅ Password reset email sent to ${user.email}`)
-  }
-
-  async function inviteStaff() {
-    if (!inviteEmail.trim()) return
-    setInviting(true)
-    const { data: existing } = await supabase
-      .from('users')
-      .select('id, name')
-      .eq('email', inviteEmail.trim().toLowerCase())
-      .single()
-
-    if (!existing) {
-      alert('No account found with that email. They need to create a Diamond IQ account first.')
-      setInviting(false)
-      return
-    }
-
-    const { error } = await supabase
-      .from('facility_users')
-      .upsert({ facility_id: facilityProfile.id, user_id: existing.id, role: 'staff' },
-        { onConflict: 'facility_id,user_id' })
-
-    if (error) { alert('Error: ' + error.message); setInviting(false); return }
-
-    setSuccessMsg(`✅ ${existing.name} added as staff`)
-    setInviteEmail('')
-    loadStaff()
-    setInviting(false)
-  }
-
-  async function removeStaff(userId: string) {
-    if (!confirm('Remove this staff member?')) return
-    await supabase.from('facility_users')
-      .delete()
-      .eq('facility_id', facilityProfile.id)
-      .eq('user_id', userId)
-    loadStaff()
-  }
-
-  async function loadStaff() {
-    const { data } = await supabase
-      .from('facility_users')
-      .select('*, user:users(name, email)')
-      .eq('facility_id', facilityProfile?.id)
-    setStaff(data ?? [])
   }
 
   if (loading) return (
-    <div className={styles.page}>
-      <div className={styles.loading}>Loading...</div>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f3ef', fontFamily: '-apple-system, sans-serif' }}>
+      <div style={{ width: 36, height: 36, border: '3px solid #e5e5e5', borderTopColor: '#185FA5', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   )
 
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <span className={styles.headerLogo}>Diamond IQ</span>
-          <span className={styles.headerSub}>{facilityProfile?.name ?? 'Facility Portal'}</span>
+    <div style={{ minHeight: '100vh', background: '#f4f3ef', fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif' }}>
+      {/* Header */}
+      <header style={{ background: '#042C53', padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ color: '#fff', fontSize: 18, fontWeight: 800 }}>Diamond IQ</span>
+          <span style={{ color: '#B5D4F4', fontSize: 13 }}>{name}</span>
         </div>
-        <div className={styles.headerNav}>
-          <a href="/facility/dashboard" className={styles.navLink}>📂 Upload</a>
-          <a href="/facility/sessions" className={styles.navLink}>📋 Sessions</a>
-          <button onClick={handleSignOut} className={styles.signOutBtn}>Sign Out</button>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <a href="/facility/dashboard" style={{ color: '#B5D4F4', fontSize: 13, textDecoration: 'none' }}>📂 Upload</a>
+          <a href="/facility/sessions" style={{ color: '#B5D4F4', fontSize: 13, textDecoration: 'none' }}>📊 Sessions</a>
+          <button onClick={async () => { await supabase.auth.signOut(); router.push('/facility/login') }}
+            style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '6px 14px', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
+            Sign Out
+          </button>
         </div>
       </header>
 
-      <div className={styles.content}>
-        <h1 className={styles.pageTitle}>Facility Settings</h1>
-        <p className={styles.pageSub}>Update your facility profile information.</p>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: 32 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: '#042C53', margin: '0 0 24px' }}>Facility Profile</h1>
 
-        {successMsg && <div className={styles.success}>{successMsg}</div>}
+        {successMsg && <div style={{ background: '#E8F5E9', color: '#1B5E20', padding: '12px 16px', borderRadius: 10, marginBottom: 16, fontSize: 13, fontWeight: 500 }}>{successMsg}</div>}
+        {errorMsg && <div style={{ background: '#FFEBEE', color: '#B71C1C', padding: '12px 16px', borderRadius: 10, marginBottom: 16, fontSize: 13 }}>{errorMsg}</div>}
 
-        <form onSubmit={handleSave} className={styles.form}>
-          {/* Basic Info */}
-          <div className={styles.card}>
-            <h2 className={styles.cardTitle}>Basic Information</h2>
-
-            <div className={styles.field}>
-              <label className={styles.label}>Facility Name *</label>
-              <input
-                className={styles.input}
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="Diamond Edge Training"
-                required
-              />
+        {/* Public profile link */}
+        {publicSlug && (
+          <div style={{ background: '#E6F1FB', borderRadius: 10, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#185FA5', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 2 }}>Your Public Profile</div>
+              <div style={{ fontSize: 13, color: '#185FA5' }}>iqbio.io/facility/{publicSlug}</div>
             </div>
-
-            <div className={styles.fieldRow}>
-              <div className={styles.field}>
-                <label className={styles.label}>City</label>
-                <input
-                  className={styles.input}
-                  value={city}
-                  onChange={e => setCity(e.target.value)}
-                  placeholder="Charlotte"
-                />
-              </div>
-              <div className={styles.fieldSmall}>
-                <label className={styles.label}>State</label>
-                <input
-                  className={styles.input}
-                  value={state}
-                  onChange={e => setState(e.target.value)}
-                  placeholder="NC"
-                  maxLength={2}
-                />
-              </div>
-            </div>
-
-            <div className={styles.field}>
-              <label className={styles.label}>Address</label>
-              <input
-                className={styles.input}
-                value={address}
-                onChange={e => setAddress(e.target.value)}
-                placeholder="123 Baseball Blvd"
-              />
-            </div>
-          </div>
-
-          {/* Bio */}
-          <div className={styles.card}>
-            <h2 className={styles.cardTitle}>About Your Facility</h2>
-            <div className={styles.field}>
-              <label className={styles.label}>Bio</label>
-              <textarea
-                className={styles.textarea}
-                value={bio}
-                onChange={e => setBio(e.target.value)}
-                placeholder="Tell players and coaches about your facility, specialties, and what makes you unique..."
-                rows={4}
-              />
-            </div>
-          </div>
-
-          {/* Equipment */}
-          <div className={styles.card}>
-            <h2 className={styles.cardTitle}>Equipment</h2>
-            <p className={styles.cardHint}>Select all equipment available at your facility.</p>
-            <div className={styles.equipmentGrid}>
-              {ALL_EQUIPMENT.map(item => (
-                <button
-                  key={item}
-                  type="button"
-                  className={`${styles.equipChip} ${equipment.includes(item) ? styles.equipChipActive : ''}`}
-                  onClick={() => toggleEquipment(item)}
-                >
-                  {equipment.includes(item) ? '✓ ' : ''}{item}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button type="submit" className={styles.saveBtn} disabled={saving}>
-            {saving ? 'Saving...' : '✓ Save Changes'}
-          </button>
-
-          {/* Staff Management */}
-          <div className={styles.card} style={{ marginTop: 0 }}>
-            <h2 className={styles.cardTitle}>Staff Access</h2>
-            <p className={styles.cardHint}>Add staff members who can log sessions from this facility. They need an existing Diamond IQ account.</p>
-
-            {staff.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                {staff.map((s: any) => (
-                  <div key={s.user_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(4,44,83,0.08)' }}>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--navy)' }}>{s.user?.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--gray)' }}>{s.user?.email}</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeStaff(s.user_id)}
-                      style={{ fontSize: 12, color: '#C0392B', background: 'none', border: 'none', cursor: 'pointer' }}>
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                className={styles.input}
-                style={{ flex: 1, marginBottom: 0 }}
-                value={inviteEmail}
-                onChange={e => setInviteEmail(e.target.value)}
-                placeholder="staff@email.com"
-                type="email"
-              />
-              <button
-                type="button"
-                className={styles.saveBtn}
-                style={{ width: 'auto', padding: '11px 20px' }}
-                onClick={inviteStaff}
-                disabled={inviting}>
-                {inviting ? '...' : 'Add'}
-              </button>
-            </div>
-          </div>
-
-          {/* Password Reset */}
-          <div className={styles.card} style={{ marginTop: 0 }}>
-            <h2 className={styles.cardTitle}>Security</h2>
-            <p className={styles.cardHint}>Send a password reset link to your registered email address.</p>
             <button
-              type="button"
-              className={styles.resetBtn}
-              onClick={handlePasswordReset}
+              onClick={() => { navigator.clipboard.writeText(`https://www.iqbio.io/facility/${publicSlug}`); setSuccessMsg('✅ Link copied!') }}
+              style={{ padding: '6px 14px', background: '#185FA5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
             >
-              📧 Send Password Reset Email
+              Copy Link
             </button>
           </div>
-        </form>
+        )}
+
+        {/* Basic info */}
+        <div style={{ background: '#fff', borderRadius: 14, padding: 24, marginBottom: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#042C53', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 16px' }}>Basic Information</h3>
+
+          {[
+            { label: 'Facility Name', value: name, setter: setName, placeholder: 'Triple Crown Baseball' },
+            { label: 'Phone Number', value: phone, setter: setPhone, placeholder: '(704) 555-0100' },
+            { label: 'Website', value: website, setter: setWebsite, placeholder: 'https://yourfacility.com' },
+            { label: 'Address', value: address, setter: setAddress, placeholder: '123 Main St' },
+            { label: 'City', value: city, setter: setCity, placeholder: 'Denver' },
+            { label: 'State', value: state, setter: setState, placeholder: 'NC' },
+          ].map(({ label, value, setter, placeholder }) => (
+            <div key={label} style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5 }}>{label}</label>
+              <input
+                value={value}
+                onChange={e => setter(e.target.value)}
+                placeholder={placeholder}
+                style={{ width: '100%', padding: '10px 14px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' as const }}
+              />
+            </div>
+          ))}
+
+          <div style={{ marginBottom: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5 }}>About Your Facility</label>
+            <textarea
+              value={bio}
+              onChange={e => setBio(e.target.value)}
+              placeholder="Tell players and parents what makes your facility special — your coaching philosophy, specialties, training programs..."
+              rows={4}
+              style={{ width: '100%', padding: '10px 14px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const, lineHeight: 1.6 }}
+            />
+          </div>
+        </div>
+
+        {/* Equipment */}
+        <div style={{ background: '#fff', borderRadius: 14, padding: 24, marginBottom: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#042C53', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Technology & Equipment</h3>
+          <p style={{ fontSize: 12, color: '#73726c', margin: '0 0 16px', lineHeight: 1.5 }}>
+            Select all equipment your facility has. This shows on your public profile and helps players find you when searching for specific technology.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+            {EQUIPMENT_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => toggleEquipment(opt.value)}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: 10,
+                  border: `1.5px solid ${equipment.includes(opt.value) ? '#185FA5' : '#e5e5e5'}`,
+                  background: equipment.includes(opt.value) ? '#F0F7FF' : '#fff',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 600, color: equipment.includes(opt.value) ? '#185FA5' : '#1a1a1a', marginBottom: 2 }}>
+                  {equipment.includes(opt.value) ? '✓ ' : ''}{opt.label}
+                </div>
+                <div style={{ fontSize: 11, color: '#73726c' }}>{opt.description}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            width: '100%', padding: 14, background: saving ? '#73726c' : '#185FA5',
+            color: '#fff', border: 'none', borderRadius: 10, fontSize: 15,
+            fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {saving ? 'Saving...' : 'Save Profile'}
+        </button>
       </div>
     </div>
   )
