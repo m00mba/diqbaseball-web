@@ -101,7 +101,10 @@ export default function AdminPortal() {
       .select('id, name, email, role, verified, created_at, player_profile:player_profiles(parent_token, public_slug)')
       .order('created_at', { ascending: false })
       .limit(200)
-    setUsers((data as unknown as UserRecord[]) ?? [])
+    setUsers((data ?? []).map((u: any) => ({
+      ...u,
+      player_profile: Array.isArray(u.player_profile) ? u.player_profile[0] : u.player_profile
+    })) as UserRecord[])
     setUsersLoading(false)
   }
 
