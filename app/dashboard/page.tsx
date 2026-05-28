@@ -636,9 +636,40 @@ function ProfileTab({ user, profile, flash, onSave }: any) {
   const [sat, setSat] = useState(profile?.sat?.toString() ?? '')
   const [act, setAct] = useState(profile?.act?.toString() ?? '')
   const [saving, setSaving] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState(profile?.photo_url ?? '')
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   function togglePosition(pos: string) {
     setPositions(prev => prev.includes(pos) ? prev.filter(p => p !== pos) : [...prev, pos])
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { flash('Please select an image file', true); return }
+    if (file.size > 5 * 1024 * 1024) { flash('Image must be under 5MB', true); return }
+
+    setUploadingPhoto(true)
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `players/${profile.id}/avatar.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('photos')
+        .upload(path, file, { upsert: true })
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(path)
+      setPhotoUrl(publicUrl)
+
+      await supabase.from('player_profiles').update({ photo_url: publicUrl }).eq('id', profile.id)
+      flash('✅ Photo updated')
+      onSave()
+    } catch (e: unknown) {
+      flash(e instanceof Error ? e.message : 'Upload failed', true)
+    } finally {
+      setUploadingPhoto(false)
+    }
   }
 
   async function handleSave() {
@@ -670,6 +701,33 @@ function ProfileTab({ user, profile, flash, onSave }: any) {
       </div>
 
       <div className={styles.formCard}>
+        {/* Photo upload */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 24 }}>
+          <div style={{
+            width: 80, height: 80, borderRadius: '50%',
+            background: '#E6F1FB', overflow: 'hidden',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            {photoUrl
+              ? <img src={photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <span style={{ fontSize: 28, fontWeight: 700, color: '#185FA5' }}>{(user?.name ?? '?').charAt(0)}</span>
+            }
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#042C53', marginBottom: 4 }}>Profile Photo</div>
+            <div style={{ fontSize: 12, color: '#73726c', marginBottom: 8 }}>JPG or PNG, max 5MB</div>
+            <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              style={{ padding: '6px 14px', background: '#185FA5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            >
+              {uploadingPhoto ? 'Uploading...' : photoUrl ? 'Change Photo' : 'Upload Photo'}
+            </button>
+          </div>
+        </div>
+
         <h3 className={styles.formSectionTitle}>Basic Info</h3>
         <div className={styles.formGrid2}>
           <div className={styles.formGroup}>
