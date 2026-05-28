@@ -814,6 +814,8 @@ function SettingsTab({ user, profile, flash }: any) {
   const [parentLink, setParentLink] = useState(
     profile?.parent_token ? `https://www.iqbio.io/parent/${profile.parent_token}` : ''
   )
+  const [newEmail, setNewEmail] = useState('')
+  const [savingEmail, setSavingEmail] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [savingPw, setSavingPw] = useState(false)
 
@@ -833,6 +835,20 @@ function SettingsTab({ user, profile, flash }: any) {
     setParentLink(`https://www.iqbio.io/parent/${profile.parent_token}`)
     setSavingParent(false)
     flash('✅ Parent email saved')
+  }
+
+  async function handleEmailChange() {
+    if (!newEmail.trim() || !newEmail.includes('@')) { flash('Enter a valid email address', true); return }
+    setSavingEmail(true)
+    const { error } = await supabase.auth.updateUser({ email: newEmail.trim().toLowerCase() })
+    setSavingEmail(false)
+    if (error) flash(error.message, true)
+    else {
+      // Update public.users too
+      await supabase.from('users').update({ email: newEmail.trim().toLowerCase() }).eq('id', user.id)
+      flash('✅ Confirmation sent to ' + newEmail + '. Check your inbox.')
+      setNewEmail('')
+    }
   }
 
   async function handlePasswordChange() {
@@ -883,6 +899,25 @@ function SettingsTab({ user, profile, flash }: any) {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Email change */}
+      <div className={styles.settingsCard}>
+        <div className={styles.settingsLabel}>Change Email</div>
+        <div className={styles.settingsSub} style={{ marginBottom: 8 }}>
+          Current: <strong>{user?.email}</strong>
+        </div>
+        <input
+          className={styles.input}
+          type="email"
+          value={newEmail}
+          onChange={e => setNewEmail(e.target.value)}
+          placeholder="New email address"
+          style={{ marginBottom: 8 }}
+        />
+        <button className={styles.saveBtn} onClick={handleEmailChange} disabled={savingEmail}>
+          {savingEmail ? 'Sending...' : 'Change Email'}
+        </button>
       </div>
 
       {/* Password */}
