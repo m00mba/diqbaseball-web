@@ -14,6 +14,7 @@ export default function Home() {
         </a>
         <div className={styles.navLinks}>
           <Link href="/facilities" className={styles.navLink}>Find Facilities</Link>
+          <a href="https://player.iqbio.io/login" className={styles.navLink}>Player Login</a>
           <Link href="/facility/login" className={styles.navLink}>Facility Portal</Link>
           <Link href="#download" className={styles.navCta}>Download App</Link>
         </div>
@@ -158,6 +159,7 @@ export default function Home() {
           <div className={styles.footerLogo}>Diamond IQ Baseball</div>
           <div className={styles.footerLinks}>
             <Link href="/facilities">Find Facilities</Link>
+            <a href="https://player.iqbio.io/login">Player Login</a>
             <Link href="/facility/login">Facility Portal</Link>
             <a href="mailto:kelly@destroyersbaseball.org">Contact</a>
           </div>

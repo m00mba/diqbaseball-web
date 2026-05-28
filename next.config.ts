@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
         destination: "/admin/login",
         permanent: false,
       },
+      {
+        source: "/",
+        has: [{ type: "host", value: "player.iqbio.io" }],
+        destination: "/login",
+        permanent: false,
+      },
     ];
   },
 };
