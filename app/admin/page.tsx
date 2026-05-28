@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import styles from './admin.module.css'
 
-const ADMIN_EMAIL = 'kelly@iqbio.io'
+const ADMIN_EMAIL = 'kelly@destroyersbaseball.org'
 
 type Tab = 'users' | 'facilities' | 'create'
 type Role = 'player' | 'coach' | 'scout' | 'facility'
