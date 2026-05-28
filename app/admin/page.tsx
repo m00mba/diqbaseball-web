@@ -70,6 +70,7 @@ export default function AdminPortal() {
   const [createName, setCreateName] = useState('')
   const [createEmail, setCreateEmail] = useState('')
   const [createPassword, setCreatePassword] = useState('')
+  const [createPasswordConfirm, setCreatePasswordConfirm] = useState('')
   const [createRole, setCreateRole] = useState<Role>('player')
   const [creating, setCreating] = useState(false)
   const [facilityName, setFacilityName] = useState('')
@@ -251,6 +252,14 @@ export default function AdminPortal() {
       flash('Name, email, and password are required', true)
       return
     }
+    if (createPassword.trim().length < 8) {
+      flash('Password must be at least 8 characters', true)
+      return
+    }
+    if (createPassword.trim() !== createPasswordConfirm.trim()) {
+      flash('Passwords do not match', true)
+      return
+    }
     if (createRole === 'facility' && !facilityName.trim()) {
       flash('Facility name is required', true)
       return
@@ -273,7 +282,7 @@ export default function AdminPortal() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       flash(`✅ Account created for ${createName}`)
-      setCreateName(''); setCreateEmail(''); setCreatePassword('')
+      setCreateName(''); setCreateEmail(''); setCreatePassword(''); setCreatePasswordConfirm('')
       setFacilityName(''); setFacilityCity(''); setFacilityState('')
       setCreateRole('player')
     } catch (e: unknown) {
@@ -520,6 +529,21 @@ export default function AdminPortal() {
             <div className={styles.formGroup}>
               <label className={styles.label}>Temporary Password</label>
               <input className={styles.input} value={createPassword} onChange={e => setCreatePassword(e.target.value)} placeholder="Min 8 characters" type="password" />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Confirm Password</label>
+              <input
+                className={styles.input}
+                value={createPasswordConfirm}
+                onChange={e => setCreatePasswordConfirm(e.target.value)}
+                placeholder="Re-enter password"
+                type="password"
+                style={{ borderColor: createPasswordConfirm && createPassword !== createPasswordConfirm ? '#CC2E2E' : undefined }}
+              />
+              {createPasswordConfirm && createPassword !== createPasswordConfirm && (
+                <div style={{ fontSize: 11, color: '#CC2E2E', marginTop: 4 }}>Passwords do not match</div>
+              )}
             </div>
 
             {createRole === 'facility' && (
