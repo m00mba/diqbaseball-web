@@ -83,7 +83,7 @@ export default function AdminPortal() {
         router.push('/facility/login')
         return
       }
-      setCurrentUserEmail(data.user.email)
+      setCurrentUserEmail(data.user.email ?? null)
       setLoading(false)
       loadUsers()
     })
