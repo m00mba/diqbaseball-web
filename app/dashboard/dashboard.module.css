@@ -1,0 +1,277 @@
+.page {
+  min-height: 100vh;
+  background: #f4f3ef;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.loadingPage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f3ef;
+}
+
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid #e5e5e5;
+  border-top-color: #185FA5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.header {
+  background: #042C53;
+  padding: 12px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.headerLeft { display: flex; align-items: center; gap: 14px; }
+.headerLogo { color: #fff; font-size: 18px; font-weight: 800; text-decoration: none; letter-spacing: -0.5px; }
+.headerName { color: #B5D4F4; font-size: 13px; }
+.headerRight { display: flex; align-items: center; gap: 12px; }
+.headerProfileLink { color: #B5D4F4; font-size: 12px; text-decoration: none; }
+.headerProfileLink:hover { color: #fff; }
+
+.signOutBtn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.successBar { background: #E8F5E9; color: #1B5E20; padding: 12px 32px; font-size: 13px; font-weight: 500; }
+.errorBar { background: #FFEBEE; color: #B71C1C; padding: 12px 32px; font-size: 13px; font-weight: 500; }
+
+.tabs {
+  background: #fff;
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  padding: 0 32px;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.tab {
+  padding: 14px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #73726c;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.tab:hover { color: #042C53; }
+.tabActive { color: #042C53; border-bottom-color: #185FA5; }
+
+.content { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
+
+.tabContent { display: flex; flex-direction: column; gap: 20px; }
+
+.tabHeader { display: flex; align-items: center; justify-content: space-between; }
+.tabTitle { font-size: 20px; font-weight: 800; color: #042C53; margin: 0; }
+
+.addBtn {
+  padding: 9px 18px;
+  background: #185FA5;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.addBtn:hover { background: #1470b8; }
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.cardTitle { font-size: 13px; font-weight: 700; color: #042C53; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 4px; }
+.cardMeta { font-size: 12px; color: #73726c; margin: 0 0 14px; }
+
+.overviewHero {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  flex-wrap: wrap;
+}
+
+.diqScoreCard {
+  background: #042C53;
+  border-radius: 12px;
+  padding: 16px 24px;
+  text-align: center;
+  min-width: 100px;
+}
+.diqScoreVal { font-size: 32px; font-weight: 800; color: #fff; line-height: 1; }
+.diqScoreLabel { font-size: 10px; color: #B5D4F4; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.overviewStats { display: flex; gap: 24px; flex-wrap: wrap; }
+.overviewStat { text-align: center; }
+.overviewStatVal { font-size: 24px; font-weight: 700; color: #042C53; }
+.overviewStatLabel { font-size: 11px; color: #73726c; margin-top: 2px; }
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.metricCard { background: #f8f8f7; border-radius: 10px; padding: 12px; text-align: center; }
+.metricVal { font-size: 18px; font-weight: 700; color: #042C53; }
+.metricLbl { font-size: 10px; color: #73726c; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+.aiBox { background: #F0F7FF; border-radius: 10px; border: 0.5px solid #B5D4F4; padding: 14px; }
+.aiBoxTitle { font-size: 11px; font-weight: 700; color: #042C53; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
+.aiBoxText { font-size: 13px; color: #1a1a1a; line-height: 1.6; margin: 0; }
+
+.nudgeCard { background: #FFF8E6; border-radius: 12px; padding: 20px; border: 1px solid #FFE082; }
+.nudgeTitle { font-size: 14px; font-weight: 700; color: #7A5200; margin-bottom: 6px; }
+.nudgeText { font-size: 13px; color: #7A5200; margin: 0 0 12px; line-height: 1.5; }
+.nudgeBtn { background: #7A5200; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+.formCard { background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.formTitle { font-size: 16px; font-weight: 700; color: #042C53; margin: 0 0 20px; }
+.formSectionTitle { font-size: 12px; font-weight: 700; color: #73726c; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 12px; }
+.formGrid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 4px; }
+.formGrid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 4px; }
+.formGroup { display: flex; flex-direction: column; margin-bottom: 14px; }
+
+.label { font-size: 11px; font-weight: 600; color: #73726c; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 5px; }
+
+.input {
+  padding: 9px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  box-sizing: border-box;
+  width: 100%;
+}
+.input:focus { outline: none; border-color: #185FA5; }
+
+.select {
+  padding: 9px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+  width: 100%;
+}
+
+.textarea {
+  padding: 9px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.resultBtns { display: flex; gap: 8px; }
+.resultBtn { padding: 8px 20px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; background: #fff; color: #73726c; }
+.resultBtnActive { border-color: #185FA5; background: #185FA5; color: #fff; }
+
+.statsGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.statInputGroup { display: flex; flex-direction: column; align-items: center; }
+.statLabel { font-size: 11px; font-weight: 600; color: #73726c; margin-bottom: 4px; }
+.statInput { width: 100%; padding: 8px 4px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; font-weight: 600; color: #042C53; text-align: center; box-sizing: border-box; }
+
+.formActions { display: flex; gap: 10px; margin-top: 20px; }
+.cancelBtn { flex: 1; padding: 11px; background: #f4f3ef; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; cursor: pointer; color: #73726c; }
+.saveBtn { flex: 2; padding: 11px; background: #185FA5; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.saveBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+.saveBtn:hover:not(:disabled) { background: #1470b8; }
+
+.positionGrid { display: flex; flex-wrap: wrap; gap: 8px; }
+.posBtn { padding: 6px 14px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; background: #fff; color: #73726c; }
+.posBtnActive { border-color: #185FA5; background: #185FA5; color: #fff; }
+
+.seasonCard { background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.seasonCardHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.seasonCardTitle { font-size: 16px; font-weight: 700; color: #042C53; margin: 0; }
+.seasonCardGames { font-size: 12px; color: #73726c; }
+
+.seasonTotals { display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 8px; margin-bottom: 20px; }
+.totalStat { background: #F0F7FF; border-radius: 8px; padding: 10px 4px; text-align: center; }
+.totalStatVal { font-size: 16px; font-weight: 700; color: #042C53; }
+.totalStatLbl { font-size: 9px; color: #73726c; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+
+.gamesTable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gamesTable th { text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 600; color: #73726c; text-transform: uppercase; letter-spacing: 0.4px; background: #f8f8f7; border-bottom: 1px solid #e5e5e5; }
+.gamesTable td { padding: 10px; border-bottom: 1px solid #f4f3ef; color: #1a1a1a; }
+.gamesTable tr:last-child td { border-bottom: none; }
+.gamesTable tr:hover td { background: #fafafa; }
+
+.resultBadge { padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.resultW { background: #E8F5E9; color: #27500A; }
+.resultL { background: #FFEBEE; color: #B71C1C; }
+.resultT { background: #FFF3E0; color: #7A5200; }
+
+.editGameBtn { padding: 4px 8px; background: #E6F1FB; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; }
+.deleteGameBtn { padding: 4px 8px; background: #FDE8E8; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; }
+.deleteGameBtn:disabled { opacity: 0.5; }
+
+.sessionCard { background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.sessionCardHeader { margin-bottom: 14px; }
+.sessionCardFacility { font-size: 15px; font-weight: 700; color: #042C53; }
+.sessionCardMeta { font-size: 12px; color: #73726c; margin-top: 2px; }
+
+.empty { text-align: center; padding: 60px 24px; background: #fff; border-radius: 14px; }
+.emptyIcon { font-size: 40px; margin-bottom: 12px; }
+.emptyTitle { font-size: 16px; font-weight: 700; color: #042C53; margin-bottom: 6px; }
+.emptyText { font-size: 13px; color: #73726c; margin: 0 0 16px; line-height: 1.6; }
+.findFacilityBtn { display: inline-block; background: #185FA5; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; }
+
+.loading { text-align: center; color: #73726c; padding: 40px; font-size: 14px; }
+
+.settingsCard { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.settingsRow { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.settingsLabel { font-size: 14px; font-weight: 600; color: #042C53; margin-bottom: 2px; }
+.settingsSub { font-size: 12px; color: #73726c; line-height: 1.5; }
+
+.toggle { padding: 6px 16px; border: none; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.toggleOn { background: #185FA5; color: #fff; }
+.toggleOff { background: #e5e5e5; color: #73726c; }
+
+.parentLinkBox { background: #F0F7FF; border-radius: 8px; padding: 12px; margin-top: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.parentLinkLabel { font-size: 11px; font-weight: 600; color: #185FA5; }
+.parentLinkUrl { font-size: 12px; color: #185FA5; flex: 1; word-break: break-all; }
+.copyBtn { padding: 5px 12px; background: #185FA5; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.viewProfileBtn { display: inline-block; margin-top: 10px; font-size: 13px; color: #185FA5; text-decoration: none; font-weight: 500; }
+.viewProfileBtn:hover { text-decoration: underline; }
+
+@media (max-width: 640px) {
+  .header { padding: 12px 16px; }
+  .tabs { padding: 0 16px; }
+  .content { padding: 16px; }
+  .formGrid2, .formGrid3 { grid-template-columns: 1fr; }
+  .gamesTable { font-size: 11px; }
+  .gamesTable th, .gamesTable td { padding: 6px; }
+}
