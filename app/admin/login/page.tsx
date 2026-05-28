@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-const ADMIN_EMAIL = 'kelly@iqbio.io'
+const ADMIN_EMAIL = 'kelly@destroyersbaseball.org'
 
 export default function AdminLogin() {
   const router = useRouter()
@@ -18,10 +18,6 @@ export default function AdminLogin() {
       setError('Email and password are required')
       return
     }
-    if (email.trim().toLowerCase() !== ADMIN_EMAIL) {
-      setError('This portal is restricted to administrators.')
-      return
-    }
     setLoading(true)
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -29,7 +25,7 @@ export default function AdminLogin() {
         password: password.trim(),
       })
       if (authError) throw authError
-      if (data.user?.email !== ADMIN_EMAIL) {
+      if (data.user?.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
         await supabase.auth.signOut()
         setError('Access denied.')
         return
