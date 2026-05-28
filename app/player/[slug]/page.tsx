@@ -25,6 +25,7 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
   const { slug } = use(params)
   const [player, setPlayer] = useState<any>(null)
   const [sessions, setSessions] = useState<any[]>([])
+  const [gameStats, setGameStats] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -53,6 +54,14 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
     }
 
     setPlayer(profile)
+
+    // Load game stats
+    const { data: stats } = await supabase
+      .from('game_stats')
+      .select('*')
+      .eq('player_id', profile.id)
+      .order('game_date', { ascending: false })
+    setGameStats(stats ?? [])
 
     // Load verified sessions if hittrax_visible
     if (profile.hittrax_visible !== false) {
@@ -248,6 +257,66 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
             )}
           </div>
         )}
+
+        {/* Game Stats by Season */}
+        {gameStats.length > 0 && (() => {
+          // Group by season_year + season_type
+          const seasons: Record<string, any[]> = {}
+          gameStats.forEach(g => {
+            const year = g.season_year ?? new Date(g.game_date).getFullYear()
+            const type = g.season_type ?? 'Season'
+            const key = `${year} ${type}`
+            if (!seasons[key]) seasons[key] = []
+            seasons[key].push(g)
+          })
+
+          return (
+            <div className={styles.card}>
+              <h3 className={styles.cardTitle}>Game Statistics</h3>
+              {Object.entries(seasons).map(([seasonKey, games]) => {
+                const totals = games.reduce((acc, g) => ({
+                  ab: acc.ab + (g.ab ?? 0),
+                  h: acc.h + (g.h ?? 0),
+                  hr: acc.hr + (g.hr ?? 0),
+                  rbi: acc.rbi + (g.rbi ?? 0),
+                  bb: acc.bb + (g.bb ?? 0),
+                  so: acc.so + (g.so ?? 0),
+                  sb: acc.sb + (g.sb ?? 0),
+                }), { ab: 0, h: 0, hr: 0, rbi: 0, bb: 0, so: 0, sb: 0 })
+
+                const avg = totals.ab > 0 ? (totals.h / totals.ab).toFixed(3).replace('0.', '.') : '.000'
+                const obp = totals.ab > 0 ? ((totals.h + totals.bb) / (totals.ab + totals.bb)).toFixed(3).replace('0.', '.') : '.000'
+
+                return (
+                  <div key={seasonKey} className={styles.seasonBlock}>
+                    <div className={styles.seasonHeader}>
+                      <span className={styles.seasonName}>{seasonKey}</span>
+                      <span className={styles.seasonGames}>{games.length} games</span>
+                    </div>
+                    <div className={styles.seasonStats}>
+                      {[
+                        { label: 'AVG', value: avg },
+                        { label: 'OBP', value: obp },
+                        { label: 'AB', value: totals.ab },
+                        { label: 'H', value: totals.h },
+                        { label: 'HR', value: totals.hr },
+                        { label: 'RBI', value: totals.rbi },
+                        { label: 'BB', value: totals.bb },
+                        { label: 'SO', value: totals.so },
+                        { label: 'SB', value: totals.sb },
+                      ].map(({ label, value }) => (
+                        <div key={label} className={styles.seasonStat}>
+                          <div className={styles.seasonStatVal}>{value}</div>
+                          <div className={styles.seasonStatLbl}>{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
 
         {/* Footer */}
         <div className={styles.footer}>
