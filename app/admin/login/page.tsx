@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-const ADMIN_EMAIL = 'kelly@destroyersbaseball.org'
+const ADMIN_EMAILS = ['kelly@destroyersbaseball.org', 'kelly@iqbio.io']
 
 export default function AdminLogin() {
   const router = useRouter()
@@ -25,7 +25,7 @@ export default function AdminLogin() {
         password: password.trim(),
       })
       if (authError) throw authError
-      if (data.user?.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+      if (!data.user?.email || !ADMIN_EMAILS.includes(data.user.email.toLowerCase())) {
         await supabase.auth.signOut()
         setError('Access denied.')
         return

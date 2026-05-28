@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import styles from './admin.module.css'
 
-const ADMIN_EMAIL = 'kelly@destroyersbaseball.org'
+const ADMIN_EMAILS = ['kelly@destroyersbaseball.org', 'kelly@iqbio.io']
 
 type Tab = 'users' | 'facilities' | 'create'
 type Role = 'player' | 'coach' | 'scout' | 'facility'
@@ -79,7 +79,7 @@ export default function AdminPortal() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user || data.user.email !== ADMIN_EMAIL) {
+      if (!data.user || !ADMIN_EMAILS.includes(data.user.email?.toLowerCase() ?? '')) {
         router.push('/facility/login')
         return
       }
