@@ -9,7 +9,7 @@ export default function Home() {
 
       {/* NAV */}
       <nav className={styles.nav}>
-        <a href="https://diqbaseball.com" className={styles.navLogo} style={{textDecoration:"none"}}> 
+        <a href="https://www.iqbio.io" className={styles.navLogo} style={{textDecoration:"none"}}> 
           <span className={styles.navLogoText}>Diamond IQ</span>
           <span className={styles.navLogoBadge}>BASEBALL</span>
         </a>
