@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import styles from './page.module.css'
 import Link from 'next/link'
 
@@ -16,7 +17,7 @@ export default function Home() {
           <Link href="/facilities" className={styles.navLink}>Find Facilities</Link>
           <a href="https://player.iqbio.io/login" className={styles.navLink}>Player Login</a>
           <Link href="/facility/login" className={styles.navLink}>Facility Portal</Link>
-          <Link href="#download" className={styles.navCta}>Download App</Link>
+          <Link href="#access" className={styles.navCta}>Request Access</Link>
         </div>
       </nav>
 
@@ -33,7 +34,7 @@ export default function Home() {
             Diamond IQ connects players with coaches, scouts, and facilities through verified measurables — not self-reported stats. Every number in your profile is confirmed by a certified facility.
           </p>
           <div className={styles.heroCtas}>
-            <a href="#download" className={styles.btnPrimary}>Get the App</a>
+            <Link href="#access" className={styles.btnPrimary}>Request Access</Link>
             <Link href="/facilities" className={styles.btnSecondary}>Find a Facility</Link>
           </div>
         </div>
@@ -135,21 +136,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* DOWNLOAD */}
-      <section className={styles.download} id="download">
+      {/* REQUEST ACCESS */}
+      <section className={styles.download} id="access">
         <div className={styles.downloadInner}>
-          <div className={styles.sectionLabel} style={{ color: 'var(--gold)' }}>Available Now</div>
-          <h2 className={styles.downloadTitle}>Get Diamond IQ Baseball</h2>
-          <p className={styles.downloadSub}>Download on iOS and start building your verified recruiting profile today.</p>
-          <a
-            href="https://testflight.apple.com/join/kywhWyDg"
-            className={styles.btnDownload}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            🍎 Download on TestFlight
-          </a>
-          <p className={styles.downloadNote}>Currently in beta. Android coming soon.</p>
+          <div className={styles.sectionLabel} style={{ color: 'var(--gold)' }}>Invite Only</div>
+          <h2 className={styles.downloadTitle}>Request Access</h2>
+          <p className={styles.downloadSub}>
+            Diamond IQ is currently invite-only as we onboard our founding facilities and players. 
+            Request access and we'll reach out within 24 hours.
+          </p>
+          <RequestAccessForm />
+          <p className={styles.downloadNote}>Players, coaches, scouts, and facilities welcome.</p>
         </div>
       </section>
 
@@ -161,12 +158,79 @@ export default function Home() {
             <Link href="/facilities">Find Facilities</Link>
             <a href="https://player.iqbio.io/login">Player Login</a>
             <Link href="/facility/login">Facility Portal</Link>
-            <a href="mailto:kelly@destroyersbaseball.org">Contact</a>
+            <a href="mailto:kelly@iqbio.io">Contact</a>
           </div>
           <div className={styles.footerCopy}>© 2026 Diamond IQ Baseball. All rights reserved.</div>
         </div>
       </footer>
 
     </main>
+  )
+}
+
+function RequestAccessForm() {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit() {
+    if (!name.trim() || !email.trim() || !role) return
+    setSubmitting(true)
+    // Send via mailto as a simple solution until email is configured
+    window.location.href = `mailto:kelly@iqbio.io?subject=Diamond IQ Access Request&body=Name: ${encodeURIComponent(name)}%0AEmail: ${encodeURIComponent(email)}%0ARole: ${encodeURIComponent(role)}%0A%0APlease grant me access to Diamond IQ Baseball.`
+    setSubmitted(true)
+    setSubmitting(false)
+  }
+
+  if (submitted) return (
+    <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '20px 24px', maxWidth: 400, margin: '0 auto 16px', textAlign: 'center' }}>
+      <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
+      <div style={{ color: '#fff', fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Request sent!</div>
+      <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>We'll be in touch within 24 hours.</div>
+    </div>
+  )
+
+  return (
+    <div style={{ maxWidth: 400, margin: '0 auto 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <input
+        value={name}
+        onChange={e => setName(e.target.value)}
+        placeholder="Your name"
+        style={{ padding: '12px 16px', borderRadius: 8, border: 'none', fontSize: 14, outline: 'none' }}
+      />
+      <input
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        placeholder="Your email"
+        type="email"
+        style={{ padding: '12px 16px', borderRadius: 8, border: 'none', fontSize: 14, outline: 'none' }}
+      />
+      <select
+        value={role}
+        onChange={e => setRole(e.target.value)}
+        style={{ padding: '12px 16px', borderRadius: 8, border: 'none', fontSize: 14, outline: 'none', background: '#fff', cursor: 'pointer' }}
+      >
+        <option value="">I am a...</option>
+        <option value="Player">Player</option>
+        <option value="Coach">Coach</option>
+        <option value="Scout">Scout</option>
+        <option value="Facility">Facility / Training Center</option>
+        <option value="Parent">Parent</option>
+      </select>
+      <button
+        onClick={handleSubmit}
+        disabled={submitting || !name || !email || !role}
+        style={{
+          padding: '13px', borderRadius: 8, border: 'none',
+          background: (!name || !email || !role) ? 'rgba(255,255,255,0.3)' : '#fff',
+          color: '#042C53', fontSize: 14, fontWeight: 700,
+          cursor: (!name || !email || !role) ? 'not-allowed' : 'pointer',
+        }}
+      >
+        {submitting ? 'Sending...' : 'Request Access →'}
+      </button>
+    </div>
   )
 }
