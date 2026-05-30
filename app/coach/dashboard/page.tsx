@@ -215,17 +215,19 @@ function UploadTab({ user, flash }: any) {
 
       const fullName = `${firstName} ${lastName}`
 
-      // Search by last name first (more reliable)
+      // Search by last name - strip apostrophes for matching
+      const lastNameClean = lastName.replace(/[''']/g, '')
       const { data: users } = await supabase
         .from('users')
         .select('id, name, player_profile:player_profiles(id)')
-        .ilike('name', `%${lastName}%`)
+        .ilike('name', `%${lastNameClean}%`)
         .eq('role', 'player')
 
-      // Find best match - exact last name + first name starts with
-      let playerUser = users?.find(u => 
-        u.name.toLowerCase().includes(lastName.toLowerCase()) &&
-        u.name.toLowerCase().includes(firstName.toLowerCase())
+      // Find best match - normalize apostrophes for comparison
+      const normalize = (s: string) => s.toLowerCase().replace(/[''']/g, '').replace(/\s+/g, ' ').trim()
+      let playerUser = users?.find(u =>
+        normalize(u.name).includes(normalize(lastName)) &&
+        normalize(u.name).includes(normalize(firstName))
       )
 
       // Fallback - just last name match if first name is initial (e.g. "J Forste")
