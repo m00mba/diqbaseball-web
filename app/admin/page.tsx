@@ -77,6 +77,9 @@ export default function AdminPortal() {
   const [facilityCity, setFacilityCity] = useState('')
   const [facilityState, setFacilityState] = useState('')
 
+  // Stats
+  const [stats, setStats] = useState<Record<string, number>>({})
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user || !ADMIN_EMAILS.includes(data.user.email?.toLowerCase() ?? '')) {
@@ -86,8 +89,21 @@ export default function AdminPortal() {
       setCurrentUserEmail(data.user.email ?? null)
       setLoading(false)
       loadUsers()
+      loadStats()
     })
   }, [router])
+
+  async function loadStats() {
+    const { data } = await supabase
+      .from('users')
+      .select('role')
+    if (!data) return
+    const counts: Record<string, number> = {}
+    data.forEach((u: any) => {
+      counts[u.role] = (counts[u.role] ?? 0) + 1
+    })
+    setStats(counts)
+  }
 
   function flash(msg: string, isError = false) {
     if (isError) setErrorMsg(msg)
@@ -320,6 +336,22 @@ export default function AdminPortal() {
 
       {successMsg && <div className={styles.successBar}>{successMsg}</div>}
       {errorMsg && <div className={styles.errorBar}>{errorMsg}</div>}
+
+      {/* Stats bar */}
+      <div className={styles.statsBar}>
+        {[
+          { label: 'Total Users', value: Object.values(stats).reduce((a, b) => a + b, 0), color: '#042C53' },
+          { label: 'Players', value: stats['player'] ?? 0, color: '#185FA5' },
+          { label: 'Coaches', value: stats['coach'] ?? 0, color: '#27500A' },
+          { label: 'Scouts', value: stats['scout'] ?? 0, color: '#7A5200' },
+          { label: 'Facilities', value: stats['facility'] ?? 0, color: '#6A1B9A' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className={styles.statCard}>
+            <div className={styles.statCardVal} style={{ color }}>{value}</div>
+            <div className={styles.statCardLabel}>{label}</div>
+          </div>
+        ))}
+      </div>
 
       <div className={styles.tabs}>
         {(['users', 'facilities', 'create'] as Tab[]).map(t => (
