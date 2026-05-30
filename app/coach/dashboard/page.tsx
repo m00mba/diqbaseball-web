@@ -100,17 +100,40 @@ function UploadTab({ user, flash }: any) {
     setImportResults(null)
 
     Papa.parse(file, {
-      header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        // Filter out Totals row and glossary rows
-        const rows = (results.data as any[]).filter(row =>
-          row['Last'] && row['First'] &&
-          row['Last'] !== '' &&
-          row['Last']?.toLowerCase() !== 'totals' &&
-          !row['Last']?.toLowerCase().startsWith('glossary')
+        const allRows = results.data as string[][]
+        
+        // Find the header row - it contains 'Last' and 'First'
+        const headerRowIndex = allRows.findIndex(row => 
+          row.some(cell => cell?.trim() === 'Last') && 
+          row.some(cell => cell?.trim() === 'First')
         )
-        setParsedRows(rows)
+        
+        if (headerRowIndex === -1) {
+          flash('Could not find player data in this CSV. Make sure you exported from GameChanger Stats.', true)
+          return
+        }
+
+        const headers = allRows[headerRowIndex].map(h => h?.trim())
+        const dataRows = allRows.slice(headerRowIndex + 1)
+
+        // Convert to objects
+        const parsed = dataRows
+          .map(row => {
+            const obj: Record<string, string> = {}
+            headers.forEach((h, i) => { obj[h] = row[i]?.trim() ?? '' })
+            return obj
+          })
+          .filter(row =>
+            row['Last'] && row['First'] &&
+            row['Last'] !== '' &&
+            row['Last']?.toLowerCase() !== 'totals' &&
+            !row['Last']?.toLowerCase().startsWith('glossary') &&
+            !row['Last']?.toLowerCase().startsWith('teamname')
+          )
+
+        setParsedRows(parsed)
       }
     })
   }
