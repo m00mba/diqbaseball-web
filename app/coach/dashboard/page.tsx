@@ -115,22 +115,77 @@ function UploadTab({ user, flash }: any) {
           return
         }
 
-        const headers = allRows[headerRowIndex].map(h => h?.trim())
+        const headers = allRows[headerRowIndex].map(h => h?.replace(/"/g, '').trim())
+        
+        // Get column indices by position (handles duplicate column names)
+        const idx = (name: string, startFrom = 0) => {
+          for (let i = startFrom; i < headers.length; i++) {
+            if (headers[i] === name) return i
+          }
+          return -1
+        }
+
+        // Batting column indices (first occurrence)
+        const COL = {
+          last: idx('Last'),
+          first: idx('First'),
+          ab: idx('AB'),
+          h: idx('H'),
+          doubles: idx('2B'),
+          triples: idx('3B'),
+          hr: idx('HR'),
+          rbi: idx('RBI'),
+          runs: idx('R'),
+          bb: idx('BB'),
+          so: idx('SO'),
+          hbp: idx('HBP'),
+          sb: idx('SB'),
+          // Pitching (after IP column)
+          ip: idx('IP'),
+          w: idx('W'),
+          l: idx('L'),
+          er: idx('ER'),
+        }
+
+        // Pitching SO and BB are after IP column
+        const pitchingSO = idx('SO', COL.ip)
+        const pitchingBB = idx('BB', COL.ip)
+        const pitchingHBP = idx('HBP', COL.ip)
+
         const dataRows = allRows.slice(headerRowIndex + 1)
 
-        // Convert to objects
         const parsed = dataRows
           .map(row => {
-            const obj: Record<string, string> = {}
-            headers.forEach((h, i) => { obj[h] = row[i]?.trim() ?? '' })
-            return obj
+            const get = (i: number) => row[i]?.replace(/"/g, '').trim() ?? ''
+            return {
+              Last: get(COL.last),
+              First: get(COL.first),
+              AB: get(COL.ab),
+              H: get(COL.h),
+              '2B': get(COL.doubles),
+              '3B': get(COL.triples),
+              HR: get(COL.hr),
+              RBI: get(COL.rbi),
+              R: get(COL.runs),
+              BB: get(COL.bb),
+              SO: get(COL.so),
+              HBP: get(COL.hbp),
+              SB: get(COL.sb),
+              IP: get(COL.ip),
+              W: get(COL.w),
+              L: get(COL.l),
+              ER: get(COL.er),
+              'SO_P': pitchingSO >= 0 ? get(pitchingSO) : '0',
+              'BB_P': pitchingBB >= 0 ? get(pitchingBB) : '0',
+              'HBP_P': pitchingHBP >= 0 ? get(pitchingHBP) : '0',
+            }
           })
           .filter(row =>
-            row['Last'] && row['First'] &&
-            row['Last'] !== '' &&
-            row['Last']?.toLowerCase() !== 'totals' &&
-            !row['Last']?.toLowerCase().startsWith('glossary') &&
-            !row['Last']?.toLowerCase().startsWith('teamname')
+            row.Last && row.First &&
+            row.Last !== '' &&
+            row.Last.toLowerCase() !== 'totals' &&
+            !row.Last.toLowerCase().startsWith('glossary') &&
+            !row.Last.toLowerCase().startsWith('teamname')
           )
 
         setParsedRows(parsed)
@@ -218,8 +273,9 @@ function UploadTab({ user, flash }: any) {
       const er = parseInt(row['ER']) || 0
       const wins = parseInt(row['W']) || 0
       const losses = parseInt(row['L']) || 0
-      const kP = parseInt(row['SO.1'] ?? row['SO']) || 0  // pitching SO
-      const bbP = parseInt(row['BB.1'] ?? row['BB']) || 0  // pitching BB
+      const kP = parseInt(row['SO_P']) || 0
+      const bbP = parseInt(row['BB_P']) || 0
+      const hbpP = parseInt(row['HBP_P']) || 0
 
       const payload: any = {
         player_id: playerProfile.id,
@@ -240,6 +296,7 @@ function UploadTab({ user, flash }: any) {
         payload.er = er
         payload.k_p = kP
         payload.bb_p = bbP
+        payload.hbp_p = hbpP
         if (wins > 0) payload.result = 'W'
         if (losses > 0) payload.result = 'L'
       }
