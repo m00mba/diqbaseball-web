@@ -616,10 +616,9 @@ function RosterTab({ user }: any) {
   useEffect(() => { loadRoster() }, [user])
 
   async function loadRoster() {
-    // Find all players this coach has uploaded stats for
     const { data } = await supabase
       .from('game_stats')
-      .select('player_id, player:player_profiles(id, user:users(name, email), grad_year, positions, diq_score)')
+      .select('player_id, player:player_profiles(id, public_slug, user:users(name, email), grad_year, positions, diq_score)')
       .eq('verified_by_coach', user.id)
     
     // Deduplicate by player_id
@@ -665,10 +664,12 @@ function RosterTab({ user }: any) {
                 <span style={{ fontWeight: 700, color: '#042C53' }}>{(p.diq_score ?? 0).toFixed(1)}</span>
               </td>
               <td style={{ padding: '12px 16px' }}>
-                <Link href={`/player/${p.id}`} target="_blank"
-                  style={{ color: '#185FA5', fontSize: 12, textDecoration: 'none', fontWeight: 500 }}>
-                  View →
-                </Link>
+                {p.public_slug ? (
+                  <Link href={`/player/${p.public_slug}`} target="_blank"
+                    style={{ color: '#185FA5', fontSize: 12, textDecoration: 'none', fontWeight: 500 }}>
+                    View →
+                  </Link>
+                ) : <span style={{ color: '#B4B2A9', fontSize: 12 }}>No profile</span>}
               </td>
             </tr>
           ))}
