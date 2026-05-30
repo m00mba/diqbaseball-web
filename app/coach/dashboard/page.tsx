@@ -145,9 +145,12 @@ function UploadTab({ user, flash }: any) {
           w: idx('W'),
           l: idx('L'),
           er: idx('ER'),
+          era: idx('ERA'),
+          whip: idx('WHIP'),
+          pitchCount: idx('#P'),
         }
 
-        // Pitching SO and BB are after IP column
+        // Pitching SO, BB, HBP are after IP column
         const pitchingSO = idx('SO', COL.ip)
         const pitchingBB = idx('BB', COL.ip)
         const pitchingHBP = idx('HBP', COL.ip)
@@ -175,6 +178,9 @@ function UploadTab({ user, flash }: any) {
               W: get(COL.w),
               L: get(COL.l),
               ER: get(COL.er),
+              ERA: get(COL.era),
+              WHIP: get(COL.whip),
+              PITCH_COUNT: get(COL.pitchCount),
               'SO_P': pitchingSO >= 0 ? get(pitchingSO) : '0',
               'BB_P': pitchingBB >= 0 ? get(pitchingBB) : '0',
               'HBP_P': pitchingHBP >= 0 ? get(pitchingHBP) : '0',
@@ -297,6 +303,9 @@ function UploadTab({ user, flash }: any) {
         payload.k_p = kP
         payload.bb_p = bbP
         payload.hbp_p = hbpP
+        payload.era = parseFloat(row['ERA']) || null
+        payload.whip = parseFloat(row['WHIP']) || null
+        payload.pitch_count = parseInt(row['PITCH_COUNT']) || null
         if (wins > 0) payload.result = 'W'
         if (losses > 0) payload.result = 'L'
       }
@@ -404,12 +413,17 @@ function UploadTab({ user, flash }: any) {
             <div style={{ fontSize: 12, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 8 }}>
               Preview — {parsedRows.length} players
             </div>
-            <div style={{ background: '#f8f8f7', borderRadius: 10, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <div style={{ background: '#f8f8f7', borderRadius: 10, overflow: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, whiteSpace: 'nowrap' }}>
                 <thead>
                   <tr style={{ background: '#f0f0ee' }}>
-                    {['Player', 'AB', 'H', '2B', '3B', 'HR', 'RBI', 'R', 'BB', 'SO', 'SB', 'IP'].map(h => (
+                    <th style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#73726c', textTransform: 'uppercase' }}>Player</th>
+                    {['AB', 'H', '2B', '3B', 'HR', 'RBI', 'R', 'BB', 'SO', 'SB'].map(h => (
                       <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#73726c', textTransform: 'uppercase' }}>{h}</th>
+                    ))}
+                    <th style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#7A5200', textTransform: 'uppercase', borderLeft: '2px solid #e5e5e5' }}>IP</th>
+                    {['ER', 'K', 'BB', 'ERA', 'WHIP', 'PC'].map(h => (
+                      <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#7A5200', textTransform: 'uppercase' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -417,9 +431,16 @@ function UploadTab({ user, flash }: any) {
                   {parsedRows.map((row, i) => (
                     <tr key={i} style={{ borderTop: '1px solid #e5e5e5' }}>
                       <td style={{ padding: '8px 10px', fontWeight: 500 }}>{row['First']} {row['Last']}</td>
-                      {['AB', 'H', '2B', '3B', 'HR', 'RBI', 'R', 'BB', 'SO', 'SB', 'IP'].map(col => (
+                      {['AB', 'H', '2B', '3B', 'HR', 'RBI', 'R', 'BB', 'SO', 'SB'].map(col => (
                         <td key={col} style={{ padding: '8px 10px', color: '#73726c' }}>{row[col] || '0'}</td>
                       ))}
+                      <td style={{ padding: '8px 10px', color: '#7A5200', borderLeft: '2px solid #e5e5e5', fontWeight: parseFloat(row['IP']) > 0 ? 600 : 400 }}>{row['IP'] || '0'}</td>
+                      <td style={{ padding: '8px 10px', color: '#7A5200' }}>{row['ER'] || '0'}</td>
+                      <td style={{ padding: '8px 10px', color: '#7A5200' }}>{row['SO_P'] || '0'}</td>
+                      <td style={{ padding: '8px 10px', color: '#7A5200' }}>{row['BB_P'] || '0'}</td>
+                      <td style={{ padding: '8px 10px', color: '#7A5200' }}>{row['ERA'] || '—'}</td>
+                      <td style={{ padding: '8px 10px', color: '#7A5200' }}>{row['WHIP'] || '—'}</td>
+                      <td style={{ padding: '8px 10px', color: '#7A5200' }}>{row['PITCH_COUNT'] || '0'}</td>
                     </tr>
                   ))}
                 </tbody>

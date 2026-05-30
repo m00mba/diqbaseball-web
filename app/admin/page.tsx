@@ -250,15 +250,22 @@ export default function AdminPortal() {
 
   async function handleToggleVerified(facility: FacilityRecord) {
     setActionLoading(facility.id)
-    const { error } = await supabase
-      .from('facility_profiles')
-      .update({ verified: !facility.verified })
-      .eq('id', facility.id)
-    if (error) {
-      flash(error.message, true)
-    } else {
+    try {
+      const res = await fetch('/api/admin/toggle-facility-verified', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          facilityId: facility.id,
+          verified: !facility.verified,
+          adminEmail: currentUserEmail,
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
       flash(`✅ ${facility.name} ${!facility.verified ? 'verified' : 'unverified'}`)
       await loadFacilities()
+    } catch (e: unknown) {
+      flash(e instanceof Error ? e.message : 'Failed to update facility', true)
     }
     setActionLoading(null)
   }
