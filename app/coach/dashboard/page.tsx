@@ -216,24 +216,40 @@ function UploadTab({ user, flash }: any) {
 
       const fullName = `${firstName} ${lastName}`
 
+      // Normalize: lowercase, strip ALL apostrophe/punctuation variants, collapse spaces
+      const normalize = (s: string) => s.toLowerCase()
+        .replace(/['''‘’`´]/g, '')
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+
       // Search by last name - strip apostrophes for matching
-      const lastNameClean = lastName.replace(/[''']/g, '')
+      const lastNameClean = normalize(lastName)
       const { data: users } = await supabase
         .from('users')
         .select('id, name, player_profile:player_profiles(id)')
         .ilike('name', `%${lastNameClean}%`)
         .eq('role', 'player')
 
-      // Find best match - normalize apostrophes for comparison
-      const normalize = (s: string) => s.toLowerCase().replace(/[''']/g, '').replace(/\s+/g, ' ').trim()
+      // Find best match
       let playerUser = users?.find(u =>
         normalize(u.name).includes(normalize(lastName)) &&
         normalize(u.name).includes(normalize(firstName))
       )
 
-      // Fallback - just last name match if first name is initial (e.g. "J Forste")
-      if (!playerUser && firstName.length <= 2 && users?.length === 1) {
-        playerUser = users[0]
+      // Fallback 1 - first name is an initial (e.g. "J Forste") - match on last name only
+      if (!playerUser && firstName.length <= 2) {
+        const lastMatches = users?.filter(u => normalize(u.name).includes(normalize(lastName))) ?? []
+        if (lastMatches.length === 1) playerUser = lastMatches[0]
+      }
+
+      // Fallback 2 - first name initial matches first letter of DB name (e.g. "J" matches "Jacob")
+      if (!playerUser && firstName.length <= 2) {
+        playerUser = users?.find(u => {
+          const parts = normalize(u.name).split(' ')
+          return parts.some(p => p.startsWith(normalize(firstName))) &&
+            normalize(u.name).includes(normalize(lastName))
+        })
       }
 
       if (!playerUser) {
@@ -297,6 +313,7 @@ function UploadTab({ user, flash }: any) {
         logged_by: user.id,
         game_date: gameDate,
         opponent: opponent.trim(),
+        level: 'hs_varsity',
         season_type: seasonType,
         season_year: parseInt(seasonYear),
         result,
