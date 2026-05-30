@@ -285,6 +285,7 @@ function UploadTab({ user, flash }: any) {
 
       const payload: any = {
         player_id: playerProfile.id,
+        logged_by: user.id,
         game_date: gameDate,
         opponent: opponent.trim(),
         season_type: seasonType,
