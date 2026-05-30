@@ -228,7 +228,8 @@ function UploadTab({ user, flash }: any) {
         season_type: seasonType,
         season_year: parseInt(seasonYear),
         result,
-        ab, h, doubles, triples, hr, rbi, runs, bb, so, hbp, sb,
+        ab, h, doubles, triples, hr, rbi, runs,
+        bb, k: so, hbp, sb,
         source: 'gamechanger',
         verified_by_coach: user.id,
         gamechanger_game_id: gameId,
@@ -498,7 +499,7 @@ function GamesTab({ user }: any) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f8f8f7' }}>
-                  {['Player', 'AB', 'H', 'HR', 'RBI', 'R', 'BB', 'SO', 'SB'].map(h => (
+                  {['Player', 'AB', 'H', 'HR', 'RBI', 'R', 'BB', 'K', 'SB'].map(h => (
                     <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#73726c', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
@@ -513,7 +514,7 @@ function GamesTab({ user }: any) {
                     <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.rbi}</td>
                     <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.runs}</td>
                     <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.bb}</td>
-                    <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.so}</td>
+                    <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.k}</td>
                     <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.sb}</td>
                   </tr>
                 ))}
