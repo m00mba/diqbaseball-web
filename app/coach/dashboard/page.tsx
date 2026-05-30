@@ -154,20 +154,28 @@ function UploadTab({ user, flash }: any) {
 
       const fullName = `${firstName} ${lastName}`
 
-      // Find player by name
+      // Search by last name first (more reliable)
       const { data: users } = await supabase
         .from('users')
         .select('id, name, player_profile:player_profiles(id)')
-        .ilike('name', `%${firstName}%`)
         .ilike('name', `%${lastName}%`)
         .eq('role', 'player')
 
-      if (!users || users.length === 0) {
+      // Find best match - exact last name + first name starts with
+      let playerUser = users?.find(u => 
+        u.name.toLowerCase().includes(lastName.toLowerCase()) &&
+        u.name.toLowerCase().includes(firstName.toLowerCase())
+      )
+
+      // Fallback - just last name match if first name is initial (e.g. "J Forste")
+      if (!playerUser && firstName.length <= 2 && users?.length === 1) {
+        playerUser = users[0]
+      }
+
+      if (!playerUser) {
         unmatched.push(fullName)
         continue
       }
-
-      const playerUser = users[0]
       const playerProfile = Array.isArray(playerUser.player_profile)
         ? playerUser.player_profile[0]
         : playerUser.player_profile
@@ -237,7 +245,10 @@ function UploadTab({ user, flash }: any) {
 
       const { error } = await supabase.from('game_stats').insert(payload)
       if (!error) matched.push(fullName)
-      else unmatched.push(`${fullName} (error)`)
+      else {
+        console.error(`Error importing ${fullName}:`, error.message)
+        unmatched.push(`${fullName} (${error.message})`)
+      }
     }
 
     setImportResults({ matched, unmatched, duplicates })
