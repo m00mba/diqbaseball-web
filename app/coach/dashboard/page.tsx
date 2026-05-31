@@ -665,6 +665,7 @@ function GamesTab({ user }: any) {
               </div>
             </div>
 
+            {/* Batting Table */}
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f8f8f7' }}>
@@ -689,6 +690,38 @@ function GamesTab({ user }: any) {
                 ))}
               </tbody>
             </table>
+
+            {/* Pitching Table — only shown if any player has IP > 0 */}
+            {players.some(p => p.ip > 0) && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#042C53', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
+                  ⚾ Pitching
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: '#f8f8f7' }}>
+                      {['Pitcher', 'IP', 'R', 'ER', 'ERA', 'WHIP', 'SO', 'BB'].map(h => (
+                        <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#73726c', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {players.filter(p => p.ip > 0).map(p => (
+                      <tr key={`pitch_${p.id}`} style={{ borderTop: '1px solid #f0f0f0' }}>
+                        <td style={{ padding: '8px 10px', fontWeight: 500 }}>{p.player?.user?.name ?? '—'}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.ip}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.runs ?? '—'}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.er ?? '—'}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.era != null ? Number(p.era).toFixed(2) : '—'}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.whip != null ? Number(p.whip).toFixed(2) : '—'}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.k_p ?? '—'}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.bb_p ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )
       })}
