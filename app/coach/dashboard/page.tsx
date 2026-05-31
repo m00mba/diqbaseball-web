@@ -84,6 +84,7 @@ function UploadTab({ user, flash }: any) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [gameDate, setGameDate] = useState(new Date().toISOString().slice(0, 10))
   const [opponent, setOpponent] = useState('')
+  const [gameNumber, setGameNumber] = useState('1')
   const [seasonType, setSeasonType] = useState('travel')
   const [seasonYear, setSeasonYear] = useState(new Date().getFullYear().toString())
   const [result, setResult] = useState('W')
@@ -266,13 +267,14 @@ function UploadTab({ user, flash }: any) {
       }
 
       let wasOverwrite = false
-      // Check for duplicate - same player, same date, same opponent (any source)
+      // Check for duplicate - same player, same date, same opponent, same game number
       const { data: existing } = await supabase
         .from('game_stats')
-        .select('id, source')
+        .select('id, source, gamechanger_game_id')
         .eq('player_id', playerProfile.id)
         .eq('game_date', gameDate)
         .ilike('opponent', `%${opponent.trim().split(' ')[0]}%`)
+        .ilike('gamechanger_game_id', `%_g${gameNumber}`)
 
       if (existing && existing.length > 0) {
         const hasCoachEntry = existing.some(e => e.source === 'gamechanger')
@@ -289,7 +291,7 @@ function UploadTab({ user, flash }: any) {
       }
 
       // Parse batting stats
-      const gameId = `gc_${playerProfile.id}_${gameDate}_${opponent.toLowerCase().replace(/\s+/g, '_')}`
+      const gameId = `gc_${playerProfile.id}_${gameDate}_${opponent.toLowerCase().replace(/\s+/g, '_')}_g${gameNumber}`
 
       const ab = parseInt(row['AB']) || 0
       const h = parseInt(row['H']) || 0
@@ -326,6 +328,7 @@ function UploadTab({ user, flash }: any) {
         source: 'gamechanger',
         verified_by_coach: user.id,
         gamechanger_game_id: gameId,
+        game_number: parseInt(gameNumber),
       }
 
       if (ip > 0) {
@@ -398,6 +401,21 @@ function UploadTab({ user, flash }: any) {
             <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5 }}>Season Year</label>
             <input value={seasonYear} onChange={e => setSeasonYear(e.target.value)} type="number"
               style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' as const }} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5 }}>Game # <span style={{ fontWeight: 400, textTransform: 'none', color: '#aaa' }}>(use 2 for doubleheader game 2)</span></label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {['1', '2', '3'].map(n => (
+              <button key={n} onClick={() => setGameNumber(n)}
+                style={{
+                  padding: '8px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  border: `1.5px solid ${gameNumber === n ? '#042C53' : '#ddd'}`,
+                  background: gameNumber === n ? '#042C53' : '#fff',
+                  color: gameNumber === n ? '#fff' : '#73726c',
+                }}>{n}</button>
+            ))}
           </div>
         </div>
 
