@@ -273,16 +273,17 @@ function UploadTab({ user, flash }: any) {
         .eq('player_id', playerProfile.id)
         .eq('game_date', gameDate)
         .ilike('opponent', `%${opponent.trim().split(' ')[0]}%`)
-        .limit(1)
 
       if (existing && existing.length > 0) {
-        if (existing[0].source === 'gamechanger') {
+        const hasCoachEntry = existing.some(e => e.source === 'gamechanger')
+        if (hasCoachEntry) {
           // Already imported by coach — skip
           duplicates.push(fullName)
           continue
         } else {
-          // Player logged manually — coach import trumps, delete player entry first
-          await supabase.from('game_stats').delete().eq('id', existing[0].id)
+          // Player logged manually (possibly multiple) — coach import trumps, delete all
+          const ids = existing.map(e => e.id)
+          await supabase.from('game_stats').delete().in('id', ids)
           wasOverwrite = true
         }
       }
