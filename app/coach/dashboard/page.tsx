@@ -265,6 +265,7 @@ function UploadTab({ user, flash }: any) {
         continue
       }
 
+      let wasOverwrite = false
       // Check for duplicate - same player, same date, same opponent (any source)
       const { data: existing } = await supabase
         .from('game_stats')
@@ -276,12 +277,14 @@ function UploadTab({ user, flash }: any) {
 
       if (existing && existing.length > 0) {
         if (existing[0].source === 'gamechanger') {
+          // Already imported by coach — skip
           duplicates.push(fullName)
+          continue
         } else {
-          // Player already logged this game manually
-          playerLogged.push(fullName)
+          // Player logged manually — coach import trumps, delete player entry first
+          await supabase.from('game_stats').delete().eq('id', existing[0].id)
+          wasOverwrite = true
         }
-        continue
       }
 
       // Parse batting stats
@@ -338,8 +341,10 @@ function UploadTab({ user, flash }: any) {
       }
 
       const { error } = await supabase.from('game_stats').insert(payload)
-      if (!error) matched.push(fullName)
-      else {
+      if (!error) {
+        if (wasOverwrite) playerLogged.push(fullName)
+        else matched.push(fullName)
+      } else {
         console.error(`Error importing ${fullName}:`, error.message)
         unmatched.push(`${fullName} (${error.message})`)
       }
@@ -523,16 +528,16 @@ function UploadTab({ user, flash }: any) {
 
           {importResults.playerLogged?.length > 0 && (
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#185FA5', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 }}>
-                ⏭ Skipped — player already logged ({importResults.playerLogged.length})
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#6A1B9A', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 }}>
+                🔄 Overwritten — coach import replaced player entry ({importResults.playerLogged.length})
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {importResults.playerLogged.map((name: string) => (
-                  <span key={name} style={{ background: '#E6F1FB', color: '#185FA5', padding: '3px 10px', borderRadius: 10, fontSize: 12 }}>{name}</span>
+                  <span key={name} style={{ background: '#F3E5F5', color: '#6A1B9A', padding: '3px 10px', borderRadius: 10, fontSize: 12 }}>{name}</span>
                 ))}
               </div>
               <p style={{ fontSize: 12, color: '#73726c', margin: '8px 0 0', lineHeight: 1.5 }}>
-                These players already logged this game manually. Their entry was kept and the coach import was skipped.
+                These players had manually logged this game. The coach import replaced their entry with verified stats.
               </p>
             </div>
           )}
