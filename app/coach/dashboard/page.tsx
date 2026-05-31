@@ -562,13 +562,14 @@ function UploadTab({ user, flash }: any) {
 function GamesTab({ user }: any) {
   const [games, setGames] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingKey, setDeletingKey] = useState<string | null>(null)
+  const [confirmKey, setConfirmKey] = useState<string | null>(null)
 
   useEffect(() => {
     loadGames()
   }, [user])
 
   async function loadGames() {
-    // Get all games uploaded by this coach
     const { data } = await supabase
       .from('game_stats')
       .select('*, player:player_profiles(id, user:users(name))')
@@ -577,6 +578,22 @@ function GamesTab({ user }: any) {
       .order('game_date', { ascending: false })
     setGames(data ?? [])
     setLoading(false)
+  }
+
+  async function deleteGame(gameDate: string, opponent: string, key: string) {
+    setDeletingKey(key)
+    const { error } = await supabase
+      .from('game_stats')
+      .delete()
+      .eq('verified_by_coach', user.id)
+      .eq('game_date', gameDate)
+      .eq('opponent', opponent)
+      .eq('source', 'gamechanger')
+    if (!error) {
+      setGames(prev => prev.filter(g => !(g.game_date === gameDate && g.opponent === opponent)))
+    }
+    setDeletingKey(null)
+    setConfirmKey(null)
   }
 
   // Group by game (date + opponent)
@@ -601,6 +618,8 @@ function GamesTab({ user }: any) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {Object.entries(gameGroups).map(([key, players]) => {
         const game = players[0]
+        const isDeleting = deletingKey === key
+        const isConfirming = confirmKey === key
         return (
           <div key={key} style={{ background: '#fff', borderRadius: 14, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -610,11 +629,34 @@ function GamesTab({ user }: any) {
                   {new Date(game.game_date + 'T12:00:00').toLocaleDateString()} · {players.length} players
                 </div>
               </div>
-              <span style={{
-                padding: '4px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700,
-                background: game.result === 'W' ? '#E8F5E9' : game.result === 'L' ? '#FFEBEE' : '#FFF3E0',
-                color: game.result === 'W' ? '#27500A' : game.result === 'L' ? '#B71C1C' : '#7A5200',
-              }}>{game.result}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {isConfirming ? (
+                  <>
+                    <span style={{ fontSize: 12, color: '#B71C1C', fontWeight: 500 }}>Delete all {players.length} records?</span>
+                    <button
+                      onClick={() => deleteGame(game.game_date, game.opponent, key)}
+                      disabled={isDeleting}
+                      style={{ background: '#B71C1C', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                    >{isDeleting ? 'Deleting...' : 'Yes, delete'}</button>
+                    <button
+                      onClick={() => setConfirmKey(null)}
+                      style={{ background: '#f0f0f0', color: '#73726c', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, cursor: 'pointer' }}
+                    >Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    <span style={{
+                      padding: '4px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                      background: game.result === 'W' ? '#E8F5E9' : game.result === 'L' ? '#FFEBEE' : '#FFF3E0',
+                      color: game.result === 'W' ? '#27500A' : game.result === 'L' ? '#B71C1C' : '#7A5200',
+                    }}>{game.result}</span>
+                    <button
+                      onClick={() => setConfirmKey(key)}
+                      style={{ background: 'none', border: '1px solid #e5e5e5', borderRadius: 6, padding: '5px 10px', fontSize: 12, color: '#B71C1C', cursor: 'pointer' }}
+                    >🗑 Delete</button>
+                  </>
+                )}
+              </div>
             </div>
 
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
