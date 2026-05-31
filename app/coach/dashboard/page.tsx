@@ -607,7 +607,7 @@ function GamesTab({ user }: any) {
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: '#042C53' }}>vs {game.opponent}</div>
                 <div style={{ fontSize: 12, color: '#73726c', marginTop: 2 }}>
-                  {new Date(game.game_date).toLocaleDateString()} · {players.length} players
+                  {new Date(game.game_date + 'T12:00:00').toLocaleDateString()} · {players.length} players
                 </div>
               </div>
               <span style={{
