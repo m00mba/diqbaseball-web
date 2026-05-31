@@ -604,7 +604,7 @@ function GamesTab({ user }: any) {
     setLoading(false)
   }
 
-  async function deleteGame(gameDate: string, opponent: string, key: string) {
+  async function deleteGame(gameDate: string, opponent: string, gameNumber: number, key: string) {
     setDeletingKey(key)
     const { error } = await supabase
       .from('game_stats')
@@ -612,18 +612,20 @@ function GamesTab({ user }: any) {
       .eq('verified_by_coach', user.id)
       .eq('game_date', gameDate)
       .eq('opponent', opponent)
+      .eq('game_number', gameNumber)
       .eq('source', 'gamechanger')
     if (!error) {
-      setGames(prev => prev.filter(g => !(g.game_date === gameDate && g.opponent === opponent)))
+      setGames(prev => prev.filter(g => !(g.game_date === gameDate && g.opponent === opponent && (g.game_number ?? 1) === gameNumber)))
     }
     setDeletingKey(null)
     setConfirmKey(null)
   }
 
-  // Group by game (date + opponent)
+  // Group by game (date + opponent + game_number)
   const gameGroups: Record<string, any[]> = {}
   games.forEach(g => {
-    const key = `${g.game_date}_${g.opponent}`
+    const gn = g.game_number ?? 1
+    const key = `${g.game_date}_${g.opponent}_g${gn}`
     if (!gameGroups[key]) gameGroups[key] = []
     gameGroups[key].push(g)
   })
@@ -648,7 +650,14 @@ function GamesTab({ user }: any) {
           <div key={key} style={{ background: '#fff', borderRadius: 14, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#042C53' }}>vs {game.opponent}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#042C53' }}>
+                  vs {game.opponent}
+                  {(game.game_number ?? 1) > 1 && (
+                    <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, background: '#E6F1FB', color: '#185FA5', padding: '2px 8px', borderRadius: 6 }}>
+                      Game {game.game_number}
+                    </span>
+                  )}
+                </div>
                 <div style={{ fontSize: 12, color: '#73726c', marginTop: 2 }}>
                   {new Date(game.game_date + 'T12:00:00').toLocaleDateString()} · {players.length} players
                 </div>
@@ -658,7 +667,7 @@ function GamesTab({ user }: any) {
                   <>
                     <span style={{ fontSize: 12, color: '#B71C1C', fontWeight: 500 }}>Delete all {players.length} records?</span>
                     <button
-                      onClick={() => deleteGame(game.game_date, game.opponent, key)}
+                      onClick={() => deleteGame(game.game_date, game.opponent, game.game_number ?? 1, key)}
                       disabled={isDeleting}
                       style={{ background: '#B71C1C', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                     >{isDeleting ? 'Deleting...' : 'Yes, delete'}</button>
