@@ -588,6 +588,8 @@ function GamesTab({ user }: any) {
   const [loading, setLoading] = useState(true)
   const [deletingKey, setDeletingKey] = useState<string | null>(null)
   const [confirmKey, setConfirmKey] = useState<string | null>(null)
+  const [editingSeasonKey, setEditingSeasonKey] = useState<string | null>(null)
+  const [editingSeasonValue, setEditingSeasonValue] = useState<string>('')
 
   useEffect(() => {
     loadGames()
@@ -619,6 +621,30 @@ function GamesTab({ user }: any) {
     }
     setDeletingKey(null)
     setConfirmKey(null)
+  }
+
+  async function updateSeasonType(gameDate: string, opponent: string, gameNumber: number, newSeasonType: string, key: string) {
+    const { error } = await supabase
+      .from('game_stats')
+      .update({ season_type: newSeasonType })
+      .eq('verified_by_coach', user.id)
+      .eq('game_date', gameDate)
+      .eq('opponent', opponent)
+      .eq('game_number', gameNumber)
+    if (!error) {
+      setGames(prev => prev.map(g =>
+        (g.game_date === gameDate && g.opponent === opponent && (g.game_number ?? 1) === gameNumber)
+          ? { ...g, season_type: newSeasonType }
+          : g
+      ))
+      flash(`✅ Season type updated`)
+    }
+    setEditingSeasonKey(null)
+  }
+
+  const seasonTypeLabels: Record<string, string> = {
+    hs_varsity: 'HS Varsity', hs_jv: 'HS JV', travel: 'Travel Ball',
+    showcase: 'Showcase', college: 'College'
   }
 
   // Group by game (date + opponent + game_number)
@@ -660,6 +686,38 @@ function GamesTab({ user }: any) {
                 </div>
                 <div style={{ fontSize: 12, color: '#73726c', marginTop: 2 }}>
                   {new Date(game.game_date + 'T12:00:00').toLocaleDateString()} · {players.length} players
+                </div>
+                <div style={{ marginTop: 6 }}>
+                  {editingSeasonKey === key ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <select
+                        value={editingSeasonValue}
+                        onChange={e => setEditingSeasonValue(e.target.value)}
+                        style={{ fontSize: 12, padding: '3px 8px', borderRadius: 6, border: '1px solid #185FA5' }}
+                      >
+                        <option value="hs_varsity">HS Varsity</option>
+                        <option value="hs_jv">HS JV</option>
+                        <option value="travel">Travel Ball</option>
+                        <option value="showcase">Showcase</option>
+                        <option value="college">College</option>
+                      </select>
+                      <button
+                        onClick={() => updateSeasonType(game.game_date, game.opponent, game.game_number ?? 1, editingSeasonValue, key)}
+                        style={{ fontSize: 11, padding: '3px 10px', background: '#185FA5', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}
+                      >Save</button>
+                      <button
+                        onClick={() => setEditingSeasonKey(null)}
+                        style={{ fontSize: 11, padding: '3px 8px', background: '#f0f0f0', color: '#73726c', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                      >Cancel</button>
+                    </div>
+                  ) : (
+                    <span
+                      onClick={() => { setEditingSeasonKey(key); setEditingSeasonValue(game.season_type) }}
+                      style={{ fontSize: 11, color: '#185FA5', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      {seasonTypeLabels[game.season_type] ?? game.season_type} ✏️
+                    </span>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
