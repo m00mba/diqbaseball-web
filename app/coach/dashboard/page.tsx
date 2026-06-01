@@ -72,7 +72,7 @@ export default function CoachDashboard() {
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: 32 }}>
         {activeTab === 'upload' && <UploadTab user={user} flash={flash} />}
-        {activeTab === 'games' && <GamesTab user={user} />}
+        {activeTab === 'games' && <GamesTab user={user} flash={flash} />}
         {activeTab === 'roster' && <RosterTab user={user} />}
       </div>
     </div>
@@ -583,7 +583,7 @@ function UploadTab({ user, flash }: any) {
 }
 
 // ── Games Tab ─────────────────────────────────────────────────────────────────
-function GamesTab({ user }: any) {
+function GamesTab({ user, flash }: any) {
   const [games, setGames] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingKey, setDeletingKey] = useState<string | null>(null)
