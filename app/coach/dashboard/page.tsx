@@ -897,6 +897,7 @@ function HighlightsTab({ user, flash }: any) {
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('Game Highlight')
   const [file, setFile] = useState<File | null>(null)
+  const [caption, setCaption] = useState('')
   const [uploading, setUploading] = useState(false)
 
   const [recentUploads, setRecentUploads] = useState<any[]>([])
