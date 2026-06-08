@@ -958,23 +958,30 @@ function HighlightsTab({ user, flash }: any) {
     setUploading(true)
 
     try {
-      // Upload to Supabase storage
+      // Upload to NAS instead of Supabase storage
       const ext = file.name.split('.').pop()
-      const path = `${user.id}/highlight_${selectedPlayer.id}_${Date.now()}.${ext}`
+      const filename = `${user.id}_highlight_${selectedPlayer.id}_${Date.now()}.${ext}`
 
-      const { data: storageData, error: storageError } = await supabase.storage
-        .from('videos')
-        .upload(path, file, {
-          contentType: file.type,
-          upsert: false,
-        })
+      const formData = new FormData()
+      formData.append('file', file, filename)
 
-      if (storageError) throw storageError
+      const nasResponse = await fetch('https://drive.42labs.org/upload/videos', {
+        method: 'POST',
+        headers: {
+          'x-api-key': 'diq.2026.cCangetin1999',
+          'x-user-id': user.id,
+        },
+        body: formData,
+      })
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('videos')
-        .getPublicUrl(path)
+      if (!nasResponse.ok) {
+        const err = await nasResponse.text()
+        throw new Error(`NAS upload failed: ${err}`)
+      }
+
+      const nasData = await nasResponse.json()
+      const publicUrl = nasData.url
+      const path = filename
 
       // Insert into player_videos
       const { error: dbError } = await supabase
