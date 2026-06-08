@@ -992,6 +992,16 @@ function HighlightsTab({ user, flash }: any) {
 
       if (dbError) throw dbError
 
+      // Also post to the app feed
+      await supabase.from('posts').insert({
+        author_id: user.id,
+        tagged_player_id: selectedPlayer.id,
+        post_type: 'video',
+        content: caption.trim() || `🎬 ${title.trim()}`,
+        media_url: publicUrl,
+        visibility: 'everyone',
+      })
+
       flash(`✅ Video uploaded for ${selectedPlayer.user?.name}`)
       setTitle('')
       setFile(null)
