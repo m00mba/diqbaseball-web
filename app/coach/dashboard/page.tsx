@@ -960,7 +960,7 @@ function HighlightsTab({ user, flash }: any) {
     try {
       // Upload to Supabase storage
       const ext = file.name.split('.').pop()
-      const path = `player_${selectedPlayer.id}_${Date.now()}.${ext}`
+      const path = `${user.id}/highlight_${selectedPlayer.id}_${Date.now()}.${ext}`
 
       const { data: storageData, error: storageError } = await supabase.storage
         .from('videos')
