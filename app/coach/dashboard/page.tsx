@@ -898,7 +898,7 @@ function HighlightsTab({ user, flash }: any) {
   const [category, setCategory] = useState('Game Highlight')
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState(0)
+
   const [recentUploads, setRecentUploads] = useState<any[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -991,7 +991,6 @@ function HighlightsTab({ user, flash }: any) {
         })
 
       if (dbError) throw dbError
-      setProgress(100)
 
       flash(`✅ Video uploaded for ${selectedPlayer.user?.name}`)
       setTitle('')
@@ -1058,22 +1057,35 @@ function HighlightsTab({ user, flash }: any) {
           <input ref={fileRef} type="file" accept="video/*"
             onChange={e => setFile(e.target.files?.[0] ?? null)}
             style={{ fontSize: 13, color: '#73726c' }} />
-          {file && <div style={{ fontSize: 12, color: '#73726c', marginTop: 4 }}>{file.name} ({Math.round(file.size / 1024 / 1024 * 10) / 10} MB)</div>}
+          {file && (
+            <div style={{ marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: '#73726c' }}>{file.name} ({Math.round(file.size / 1024 / 1024 * 10) / 10} MB)</div>
+              {file.size > 209715200 && (
+                <div style={{ fontSize: 12, color: '#B71C1C', marginTop: 4, padding: '6px 10px', background: '#FFEBEE', borderRadius: 6 }}>
+                  ⚠️ Large file ({Math.round(file.size / 1024 / 1024)} MB) — upload may take several minutes. For faster uploads, export at 1080p from GoPro Player.
+                </div>
+              )}
+              {file.size > 524288000 && (
+                <div style={{ fontSize: 12, color: '#B71C1C', marginTop: 4, padding: '6px 10px', background: '#FFEBEE', borderRadius: 6 }}>
+                  ❌ File exceeds 500MB limit. Please compress before uploading.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Progress bar */}
+        {/* Upload status */}
         {uploading && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ height: 6, background: '#f0f0f0', borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${progress}%`, background: '#042C53', borderRadius: 3, transition: 'width 0.3s' }} />
-            </div>
-            <div style={{ fontSize: 12, color: '#73726c', marginTop: 4 }}>{progress < 60 ? 'Uploading...' : 'Saving...'}</div>
+          <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 16, height: 16, border: '2px solid #042C53', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ fontSize: 13, color: '#73726c' }}>Uploading video — this may take a moment for large files...</div>
           </div>
         )}
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
 
-        <button onClick={handleUpload} disabled={uploading || !selectedPlayer || !file || !title.trim()}
+        <button onClick={handleUpload} disabled={uploading || !selectedPlayer || !file || !title.trim() || (file?.size ?? 0) > 524288000}
           style={{
-            background: uploading || !selectedPlayer || !file || !title.trim() ? '#B4B2A9' : '#042C53',
+            background: uploading || !selectedPlayer || !file || !title.trim() || (file?.size ?? 0) > 524288000 ? '#B4B2A9' : '#042C53',
             color: '#fff', border: 'none', borderRadius: 10, padding: '12px 28px',
             fontSize: 14, fontWeight: 700, cursor: uploading ? 'not-allowed' : 'pointer',
           }}>
@@ -1096,7 +1108,7 @@ function HighlightsTab({ user, flash }: any) {
                   {v.player?.user?.name} · {v.category} · {new Date(v.created_at).toLocaleDateString()}
                 </div>
               </div>
-              <a href={v.playback_url} target="_blank" rel="noopener noreferrer"
+              <a href={v.video_url} target="_blank" rel="noopener noreferrer"
                 style={{ fontSize: 12, color: '#185FA5', textDecoration: 'none', fontWeight: 500 }}>
                 View →
               </a>
