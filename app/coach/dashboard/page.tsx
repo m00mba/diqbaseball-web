@@ -955,7 +955,6 @@ function HighlightsTab({ user, flash }: any) {
       return
     }
     setUploading(true)
-    setProgress(0)
 
     try {
       // Upload to Supabase storage
@@ -970,7 +969,6 @@ function HighlightsTab({ user, flash }: any) {
         })
 
       if (storageError) throw storageError
-      setProgress(60)
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
@@ -1012,8 +1010,7 @@ function HighlightsTab({ user, flash }: any) {
       flash(`Upload failed: ${e.message}`, true)
     } finally {
       setUploading(false)
-      setProgress(0)
-    }
+      }
   }
 
   return (
