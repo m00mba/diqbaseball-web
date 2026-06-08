@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import Papa from 'papaparse'
 
-type Tab = 'upload' | 'games' | 'roster'
+type Tab = 'upload' | 'games' | 'roster' | 'highlights'
 
 export default function CoachDashboard() {
   const router = useRouter()
@@ -59,6 +59,7 @@ export default function CoachDashboard() {
           { key: 'upload', label: '⬆️ Upload Game Stats' },
           { key: 'games', label: '📋 Game History' },
           { key: 'roster', label: '👥 Roster' },
+          { key: 'highlights', label: '🎬 Highlights' },
         ] as { key: Tab; label: string }[]).map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)}
             style={{
@@ -74,6 +75,7 @@ export default function CoachDashboard() {
         {activeTab === 'upload' && <UploadTab user={user} flash={flash} />}
         {activeTab === 'games' && <GamesTab user={user} flash={flash} />}
         {activeTab === 'roster' && <RosterTab user={user} />}
+        {activeTab === 'highlights' && <HighlightsTab user={user} flash={flash} />}
       </div>
     </div>
   )
@@ -881,6 +883,227 @@ function RosterTab({ user }: any) {
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+// ── Highlights Tab ────────────────────────────────────────────────────────────
+
+const VIDEO_CATEGORIES = ['Hitting', 'Pitching', 'Fielding', 'Catching', 'Speed', 'Game Highlight']
+
+function HighlightsTab({ user, flash }: any) {
+  const [roster, setRoster] = useState<any[]>([])
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null)
+  const [title, setTitle] = useState('')
+  const [category, setCategory] = useState('Game Highlight')
+  const [file, setFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [recentUploads, setRecentUploads] = useState<any[]>([])
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    loadRoster()
+    loadRecentUploads()
+  }, [user])
+
+  async function loadRoster() {
+    const { data: coachProfile } = await supabase
+      .from('coach_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+    if (!coachProfile) return
+
+    const { data } = await supabase
+      .from('coach_players')
+      .select('player:player_profiles(id, public_slug, grad_year, user:users(name))')
+      .eq('coach_id', coachProfile.id)
+    setRoster((data ?? []).map((d: any) => d.player).filter(Boolean))
+  }
+
+  async function loadRecentUploads() {
+    const { data: coachProfile } = await supabase
+      .from('coach_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+    if (!coachProfile) return
+
+    // Get recent videos uploaded for players on this coach's roster
+    const { data: players } = await supabase
+      .from('coach_players')
+      .select('player_id')
+      .eq('coach_id', coachProfile.id)
+
+    if (!players?.length) return
+    const playerIds = players.map((p: any) => p.player_id)
+
+    const { data } = await supabase
+      .from('player_videos')
+      .select('*, player:player_profiles(id, user:users(name))')
+      .in('player_id', playerIds)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    setRecentUploads(data ?? [])
+  }
+
+  async function handleUpload() {
+    if (!selectedPlayer || !file || !title.trim()) {
+      flash('Please select a player, enter a title, and choose a file', true)
+      return
+    }
+    setUploading(true)
+    setProgress(0)
+
+    try {
+      // Upload to Supabase storage
+      const ext = file.name.split('.').pop()
+      const path = `player_${selectedPlayer.id}_${Date.now()}.${ext}`
+
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from('videos')
+        .upload(path, file, {
+          contentType: file.type,
+          upsert: false,
+        })
+
+      if (storageError) throw storageError
+      setProgress(60)
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('videos')
+        .getPublicUrl(path)
+
+      // Insert into player_videos
+      const { error: dbError } = await supabase
+        .from('player_videos')
+        .insert({
+          player_id: selectedPlayer.id,
+          playback_url: publicUrl,
+          storage_path: path,
+          title: title.trim(),
+          category,
+          file_size_mb: Math.round(file.size / 1024 / 1024 * 10) / 10,
+          is_profile_video: false,
+        })
+
+      if (dbError) throw dbError
+      setProgress(100)
+
+      flash(`✅ Video uploaded for ${selectedPlayer.user?.name}`)
+      setTitle('')
+      setFile(null)
+      setSelectedPlayer(null)
+      if (fileRef.current) fileRef.current.value = ''
+      await loadRecentUploads()
+    } catch (e: any) {
+      flash(`Upload failed: ${e.message}`, true)
+    } finally {
+      setUploading(false)
+      setProgress(0)
+    }
+  }
+
+  return (
+    <div style={{ maxWidth: 700, margin: '0 auto' }}>
+      {/* Upload Form */}
+      <div style={{ background: '#fff', borderRadius: 14, padding: 28, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 24 }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#042C53', marginBottom: 20 }}>🎬 Upload Player Highlight</div>
+
+        {/* Player selector */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Player</label>
+          <select
+            value={selectedPlayer?.id ?? ''}
+            onChange={e => setSelectedPlayer(roster.find(p => p.id === e.target.value) ?? null)}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 14, color: selectedPlayer ? '#1a1a1a' : '#B4B2A9', outline: 'none' }}>
+            <option value="">Select a player...</option>
+            {roster.map(p => (
+              <option key={p.id} value={p.id}>{p.user?.name} {p.grad_year ? `'${String(p.grad_year).slice(2)}` : ''}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Title */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Title</label>
+          <input type="text" value={title} onChange={e => setTitle(e.target.value)}
+            placeholder="e.g. Jaden Beck - Home Run vs Red Clay"
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+
+        {/* Category */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Category</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {VIDEO_CATEGORIES.map(c => (
+              <button key={c} onClick={() => setCategory(c)}
+                style={{
+                  padding: '7px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer', border: '1.5px solid',
+                  borderColor: category === c ? '#042C53' : '#ddd',
+                  background: category === c ? '#042C53' : '#fff',
+                  color: category === c ? '#fff' : '#73726c',
+                  fontWeight: category === c ? 600 : 400,
+                }}>{c}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* File input */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Video File</label>
+          <input ref={fileRef} type="file" accept="video/*"
+            onChange={e => setFile(e.target.files?.[0] ?? null)}
+            style={{ fontSize: 13, color: '#73726c' }} />
+          {file && <div style={{ fontSize: 12, color: '#73726c', marginTop: 4 }}>{file.name} ({Math.round(file.size / 1024 / 1024 * 10) / 10} MB)</div>}
+        </div>
+
+        {/* Progress bar */}
+        {uploading && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ height: 6, background: '#f0f0f0', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${progress}%`, background: '#042C53', borderRadius: 3, transition: 'width 0.3s' }} />
+            </div>
+            <div style={{ fontSize: 12, color: '#73726c', marginTop: 4 }}>{progress < 60 ? 'Uploading...' : 'Saving...'}</div>
+          </div>
+        )}
+
+        <button onClick={handleUpload} disabled={uploading || !selectedPlayer || !file || !title.trim()}
+          style={{
+            background: uploading || !selectedPlayer || !file || !title.trim() ? '#B4B2A9' : '#042C53',
+            color: '#fff', border: 'none', borderRadius: 10, padding: '12px 28px',
+            fontSize: 14, fontWeight: 700, cursor: uploading ? 'not-allowed' : 'pointer',
+          }}>
+          {uploading ? 'Uploading...' : '⬆️ Upload Video'}
+        </button>
+      </div>
+
+      {/* Recent uploads */}
+      {recentUploads.length > 0 && (
+        <div style={{ background: '#fff', borderRadius: 14, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#042C53', marginBottom: 16 }}>Recent Uploads</div>
+          {recentUploads.map(v => (
+            <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 8, background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: 18 }}>🎬</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>{v.title}</div>
+                <div style={{ fontSize: 11, color: '#73726c' }}>
+                  {v.player?.user?.name} · {v.category} · {new Date(v.created_at).toLocaleDateString()}
+                </div>
+              </div>
+              <a href={v.playback_url} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 12, color: '#185FA5', textDecoration: 'none', fontWeight: 500 }}>
+                View →
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
