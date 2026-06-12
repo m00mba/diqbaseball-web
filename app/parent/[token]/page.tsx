@@ -92,7 +92,7 @@ export default function ParentView({ params }: { params: Promise<{ token: string
 
       setParentUser({ id: authData.user!.id, name: parentName, email: parentEmail, role: 'parent' })
       setShowSignup(false)
-      setSuccessMsg('✅ Account created! You can now manage your player's profile.')
+      setSuccessMsg("✅ Account created! You can now manage your player's profile.")
       setTimeout(() => setSuccessMsg(''), 4000)
     } catch (e: any) {
       setAuthError(e.message)
