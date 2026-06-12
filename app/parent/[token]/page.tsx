@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import styles from './parent.module.css'
+import Header from '@/app/components/Header'
 
 import { use } from 'react'
 
@@ -245,12 +246,7 @@ export default function ParentView({ params }: { params: Promise<{ token: string
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <div className={styles.headerLogo}>
-          <span className={styles.logoText}>Diamond IQ</span>
-          <span className={styles.logoTagline}>Parent View</span>
-        </div>
-      </header>
+      <Header />
 
       <div className={styles.container}>
         {successMsg && <div className={styles.successBar}>{successMsg}</div>}
