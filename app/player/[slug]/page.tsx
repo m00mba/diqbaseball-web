@@ -107,7 +107,7 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerLogo}>
-          <span className={styles.logoText}>Diamond IQ</span>
+          <a href="https://iqbio.io" style={{ textDecoration: "none" }}><span className={styles.logoText}>Diamond IQ Baseball</span></a>
           <span className={styles.logoTagline}>Verified Athlete Intelligence</span>
         </div>
         <button className={styles.shareBtn} onClick={copyLink}>

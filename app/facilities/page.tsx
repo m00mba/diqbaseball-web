@@ -67,7 +67,7 @@ export default function FacilitiesPage() {
       {/* Header */}
       <header style={{ background: '#042C53', padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, letterSpacing: '-0.5px' }}>Diamond IQ</div>
+          <a href="https://iqbio.io" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}><img src="/icon.png" width={32} height={32} style={{ borderRadius: "7px" }} alt="DIQ" /><span style={{ color: "#fff", fontSize: 18, fontWeight: 800, letterSpacing: "-0.5px" }}>Diamond IQ Baseball</span></a>
           <div style={{ color: '#B5D4F4', fontSize: 11 }}>Verified Athlete Intelligence</div>
         </div>
         <nav style={{ display: 'flex', gap: 20, alignItems: 'center' }}>

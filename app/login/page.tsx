@@ -55,7 +55,7 @@ export default function PlayerLogin() {
       {/* Header */}
       <header style={{ background: '#042C53', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="/" style={{ textDecoration: 'none' }}>
-          <span style={{ color: '#fff', fontSize: 18, fontWeight: 800 }}>Diamond IQ</span>
+          <a href="https://iqbio.io" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}><img src="/icon.png" width={32} height={32} style={{ borderRadius: "7px" }} alt="DIQ" /><span style={{ color: "#fff", fontSize: 18, fontWeight: 800 }}>Diamond IQ Baseball</span></a>
         </Link>
         <Link href="/facilities" style={{ color: '#B5D4F4', fontSize: 13, textDecoration: 'none' }}>Find Facilities</Link>
       </header>
