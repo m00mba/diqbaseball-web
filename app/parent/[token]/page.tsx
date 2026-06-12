@@ -33,9 +33,109 @@ export default function ParentView({ params }: { params: Promise<{ token: string
   const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
 
+  // Parent account state
+  const [parentUser, setParentUser] = useState<any>(null)
+  const [showSignup, setShowSignup] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
+  const [parentEmail, setParentEmail] = useState('')
+  const [parentPassword, setParentPassword] = useState('')
+  const [parentName, setParentName] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
+  const [authError, setAuthError] = useState('')
+
   useEffect(() => {
     loadProfile()
+    checkParentSession()
   }, [token])
+
+  async function checkParentSession() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data } = await supabase.from('users').select('*').eq('id', user.id).single()
+      if (data?.role === 'parent') setParentUser(data)
+    }
+  }
+
+  async function handleParentSignup() {
+    if (!parentEmail || !parentPassword || !parentName) {
+      setAuthError('Please fill in all fields')
+      return
+    }
+    setAuthLoading(true)
+    setAuthError('')
+    try {
+      // Create auth account
+      const { data: authData, error: signupError } = await supabase.auth.signUp({
+        email: parentEmail,
+        password: parentPassword,
+      })
+      if (signupError) throw signupError
+
+      // Create users record
+      const { error: userError } = await supabase.from('users').insert({
+        id: authData.user!.id,
+        email: parentEmail,
+        name: parentName,
+        role: 'parent',
+      })
+      if (userError) throw userError
+
+      // Link to player
+      if (player) {
+        await supabase.from('player_parents').insert({
+          player_id: player.id,
+          parent_user_id: authData.user!.id,
+          relationship: 'parent',
+        })
+      }
+
+      setParentUser({ id: authData.user!.id, name: parentName, email: parentEmail, role: 'parent' })
+      setShowSignup(false)
+      setSuccessMsg('✅ Account created! You can now manage your player's profile.')
+      setTimeout(() => setSuccessMsg(''), 4000)
+    } catch (e: any) {
+      setAuthError(e.message)
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  async function handleParentLogin() {
+    if (!parentEmail || !parentPassword) {
+      setAuthError('Please enter email and password')
+      return
+    }
+    setAuthLoading(true)
+    setAuthError('')
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: parentEmail,
+        password: parentPassword,
+      })
+      if (error) throw error
+
+      // Link to player if not already linked
+      if (player) {
+        await supabase.from('player_parents').upsert({
+          player_id: player.id,
+          parent_user_id: data.user.id,
+        }, { onConflict: 'player_id,parent_user_id', ignoreDuplicates: true })
+      }
+
+      const { data: userData } = await supabase.from('users').select('*').eq('id', data.user.id).single()
+      setParentUser(userData)
+      setShowLogin(false)
+    } catch (e: any) {
+      setAuthError(e.message)
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  async function handleParentSignOut() {
+    await supabase.auth.signOut()
+    setParentUser(null)
+  }
 
   async function loadProfile() {
     setLoading(true)
@@ -177,6 +277,71 @@ export default function ParentView({ params }: { params: Promise<{ token: string
             </div>
           </div>
         </div>
+
+        {/* Parent Account Section */}
+        {!parentUser ? (
+          <div className={styles.card}>
+            <h3 className={styles.cardTitle}>📱 Parent Account</h3>
+            <p style={{ fontSize: 13, color: '#73726c', marginBottom: 16 }}>
+              Create an account to manage {player.user?.name?.split(' ')[0]}&apos;s profile, post highlights, and receive notifications.
+            </p>
+            {showSignup ? (
+              <div>
+                {authError && <div style={{ color: '#CC2E2E', fontSize: 13, marginBottom: 8 }}>{authError}</div>}
+                <input className={styles.input} value={parentName} onChange={e => setParentName(e.target.value)}
+                  placeholder="Your full name" style={{ marginBottom: 8 }} />
+                <input className={styles.input} type="email" value={parentEmail} onChange={e => setParentEmail(e.target.value)}
+                  placeholder="Your email" style={{ marginBottom: 8 }} />
+                <input className={styles.input} type="password" value={parentPassword} onChange={e => setParentPassword(e.target.value)}
+                  placeholder="Create password" style={{ marginBottom: 12 }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className={styles.saveBtn} onClick={handleParentSignup} disabled={authLoading}>
+                    {authLoading ? 'Creating...' : 'Create Account'}
+                  </button>
+                  <button className={styles.logGameBtn} onClick={() => { setShowSignup(false); setAuthError('') }}>Cancel</button>
+                </div>
+                <p style={{ fontSize: 12, color: '#73726c', marginTop: 12 }}>
+                  Already have an account? <span style={{ color: '#185FA5', cursor: 'pointer' }} onClick={() => { setShowSignup(false); setShowLogin(true) }}>Sign in</span>
+                </p>
+              </div>
+            ) : showLogin ? (
+              <div>
+                {authError && <div style={{ color: '#CC2E2E', fontSize: 13, marginBottom: 8 }}>{authError}</div>}
+                <input className={styles.input} type="email" value={parentEmail} onChange={e => setParentEmail(e.target.value)}
+                  placeholder="Your email" style={{ marginBottom: 8 }} />
+                <input className={styles.input} type="password" value={parentPassword} onChange={e => setParentPassword(e.target.value)}
+                  placeholder="Password" style={{ marginBottom: 12 }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className={styles.saveBtn} onClick={handleParentLogin} disabled={authLoading}>
+                    {authLoading ? 'Signing in...' : 'Sign In'}
+                  </button>
+                  <button className={styles.logGameBtn} onClick={() => { setShowLogin(false); setAuthError('') }}>Cancel</button>
+                </div>
+                <p style={{ fontSize: 12, color: '#73726c', marginTop: 12 }}>
+                  No account? <span style={{ color: '#185FA5', cursor: 'pointer' }} onClick={() => { setShowLogin(false); setShowSignup(true) }}>Create one</span>
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className={styles.saveBtn} onClick={() => setShowSignup(true)}>Create Parent Account</button>
+                <button className={styles.logGameBtn} onClick={() => setShowLogin(true)}>Sign In</button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className={styles.card} style={{ background: '#042C53' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>👋 {parentUser.name}</div>
+                <div style={{ fontSize: 12, color: '#9BC4E2', marginTop: 2 }}>Linked to {player.user?.name}</div>
+              </div>
+              <button onClick={handleParentSignOut}
+                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: '6px 12px', color: '#9BC4E2', fontSize: 12, cursor: 'pointer' }}>
+                Sign Out
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Latest verified session */}
         {latestSession && (
