@@ -42,7 +42,7 @@ export default function CoachDashboard() {
     <div style={{ minHeight: '100vh', background: '#f4f3ef', fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif' }}>
       <header style={{ background: '#042C53', padding: '12px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ color: '#fff', fontSize: 18, fontWeight: 800 }}>Diamond IQ</span>
+          <a href="https://iqbio.io" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}><img src="/icon.png" width={32} height={32} style={{ borderRadius: "7px" }} alt="DIQ" /><span style={{ color: "#fff", fontSize: 18, fontWeight: 800 }}>Diamond IQ Baseball</span></a>
           <span style={{ color: '#B5D4F4', fontSize: 13 }}>{user?.name}</span>
         </div>
         <button

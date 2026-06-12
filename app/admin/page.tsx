@@ -329,7 +329,7 @@ export default function AdminPortal() {
     <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <span className={styles.headerLogo}>Diamond IQ</span>
+          <a href="https://iqbio.io" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}><img src="/icon.png" width={32} height={32} style={{ borderRadius: "7px" }} alt="DIQ" /><span className={styles.headerLogo}>Diamond IQ Baseball</span></a>
           <span className={styles.headerSub}>Admin Portal</span>
         </div>
         <div className={styles.headerRight}>
