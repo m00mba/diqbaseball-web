@@ -22,6 +22,14 @@ export default function ParentView({ params }: { params: Promise<{ token: string
   const [rbi, setRbi] = useState('')
   const [bb, setBb] = useState('')
   const [so, setSo] = useState('')
+  const [runs, setRuns] = useState('')
+  const [doubles, setDoubles] = useState('')
+  const [triples, setTriples] = useState('')
+  const [hbp, setHbp] = useState('')
+  const [sb, setSb] = useState('')
+  const [result, setResult] = useState('W')
+  const [seasonType, setSeasonType] = useState('travel')
+  const [gameStats, setGameStats] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
 
@@ -59,6 +67,15 @@ export default function ParentView({ params }: { params: Promise<{ token: string
       .order('verified_at', { ascending: false })
     setSessions(sessionData ?? [])
 
+    // Load recent game stats
+    const { data: statsData } = await supabase
+      .from('game_stats')
+      .select('*')
+      .eq('player_id', profile.id)
+      .order('game_date', { ascending: false })
+      .limit(10)
+    setGameStats(statsData ?? [])
+
     setLoading(false)
   }
 
@@ -73,24 +90,38 @@ export default function ParentView({ params }: { params: Promise<{ token: string
         .from('game_stats')
         .insert({
           player_id: player.id,
+          logged_by: player.user_id,
           opponent: opponent.trim(),
           game_date: gameDate,
+          result,
+          level: seasonType === 'hs_varsity' ? 'hs_varsity' : 'travel',
+          season_type: seasonType,
+          season_year: new Date().getFullYear(),
           ab: parseInt(ab) || 0,
           h: parseInt(h) || 0,
           hr: parseInt(hr) || 0,
           rbi: parseInt(rbi) || 0,
           bb: parseInt(bb) || 0,
-          so: parseInt(so) || 0,
-          logged_by: null,
-          season_type: 'regular',
+          k: parseInt(so) || 0,
+          runs: parseInt(runs) || 0,
+          doubles: parseInt(doubles) || 0,
+          triples: parseInt(triples) || 0,
+          hbp: parseInt(hbp) || 0,
+          sb: parseInt(sb) || 0,
+          source: 'player',
         })
       if (error) throw error
       setSuccessMsg('✅ Game logged successfully!')
       setShowLogGame(false)
       setOpponent(''); setAb(''); setH(''); setHr(''); setRbi(''); setBb(''); setSo('')
+      setRuns(''); setDoubles(''); setTriples(''); setHbp(''); setSb('')
+      // Reload stats
+      const { data } = await supabase.from('game_stats').select('*')
+        .eq('player_id', player.id).order('game_date', { ascending: false }).limit(10)
+      setGameStats(data ?? [])
       setTimeout(() => setSuccessMsg(''), 3000)
-    } catch (e: unknown) {
-      setSuccessMsg('Error saving game. Please try again.')
+    } catch (e: any) {
+      setSuccessMsg(`Error: ${e?.message ?? 'Please try again.'}`)
     } finally {
       setSaving(false)
     }
@@ -227,14 +258,47 @@ export default function ParentView({ params }: { params: Promise<{ token: string
                 </div>
               </div>
 
+              {/* Result and Season Type */}
+              <div className={styles.formRow} style={{ marginBottom: 12 }}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Result</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {['W', 'L', 'T'].map(r => (
+                      <button key={r} onClick={() => setResult(r)}
+                        style={{ padding: '8px 16px', borderRadius: 8, border: '1.5px solid',
+                          borderColor: result === r ? '#042C53' : '#ddd',
+                          background: result === r ? '#042C53' : '#fff',
+                          color: result === r ? '#fff' : '#73726c',
+                          fontWeight: result === r ? 700 : 400, cursor: 'pointer' }}>
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Season Type</label>
+                  <select className={styles.input} value={seasonType} onChange={e => setSeasonType(e.target.value)}>
+                    <option value="travel">Travel</option>
+                    <option value="hs_varsity">HS Varsity</option>
+                    <option value="hs_jv">HS JV</option>
+                    <option value="showcase">Showcase</option>
+                  </select>
+                </div>
+              </div>
+
               <div className={styles.statsGrid}>
                 {[
                   { label: 'AB', value: ab, setter: setAb },
                   { label: 'H', value: h, setter: setH },
+                  { label: '2B', value: doubles, setter: setDoubles },
+                  { label: '3B', value: triples, setter: setTriples },
                   { label: 'HR', value: hr, setter: setHr },
                   { label: 'RBI', value: rbi, setter: setRbi },
+                  { label: 'R', value: runs, setter: setRuns },
                   { label: 'BB', value: bb, setter: setBb },
-                  { label: 'SO', value: so, setter: setSo },
+                  { label: 'K', value: so, setter: setSo },
+                  { label: 'HBP', value: hbp, setter: setHbp },
+                  { label: 'SB', value: sb, setter: setSb },
                 ].map(({ label, value, setter }) => (
                   <div key={label} className={styles.statInput}>
                     <label className={styles.statLabel}>{label}</label>
@@ -260,6 +324,46 @@ export default function ParentView({ params }: { params: Promise<{ token: string
             </div>
           )}
         </div>
+
+        {/* Recent Game Stats */}
+        {gameStats.length > 0 && (
+          <div className={styles.card}>
+            <h3 className={styles.cardTitle}>Recent Games ({gameStats.length})</h3>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: '#f8f8f7' }}>
+                    {['Date', 'Opponent', 'AB', 'H', 'HR', 'RBI', 'BB', 'K', 'SB', 'Src'].map(h => (
+                      <th key={h} style={{ padding: '6px 8px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#73726c', textTransform: 'uppercase' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {gameStats.map(g => (
+                    <tr key={g.id} style={{ borderTop: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '6px 8px', color: '#73726c', whiteSpace: 'nowrap' }}>{new Date(g.game_date + 'T12:00:00').toLocaleDateString()}</td>
+                      <td style={{ padding: '6px 8px', fontWeight: 500, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.opponent}</td>
+                      <td style={{ padding: '6px 8px', color: '#73726c' }}>{g.ab}</td>
+                      <td style={{ padding: '6px 8px', color: '#73726c' }}>{g.h}</td>
+                      <td style={{ padding: '6px 8px', color: '#73726c' }}>{g.hr}</td>
+                      <td style={{ padding: '6px 8px', color: '#73726c' }}>{g.rbi}</td>
+                      <td style={{ padding: '6px 8px', color: '#73726c' }}>{g.bb}</td>
+                      <td style={{ padding: '6px 8px', color: '#73726c' }}>{g.k}</td>
+                      <td style={{ padding: '6px 8px', color: '#73726c' }}>{g.sb}</td>
+                      <td style={{ padding: '6px 8px' }}>
+                        <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 5px', borderRadius: 4,
+                          background: g.source === 'gamechanger' ? '#E6F1FB' : '#f0f0f0',
+                          color: g.source === 'gamechanger' ? '#185FA5' : '#73726c' }}>
+                          {g.source === 'gamechanger' ? 'Coach' : 'Self'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         <div className={styles.footer}>
           <p className={styles.footerText}>Diamond IQ — Verified Athlete Intelligence</p>
