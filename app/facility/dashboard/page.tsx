@@ -166,7 +166,7 @@ export default function FacilityDashboard() {
       {/* HEADER */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <a href="https://iqbio.io" style={{ textDecoration: "none" }}><span className={styles.headerLogo}>Diamond IQ</span></a>
+          <a href="https://iqbio.io" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}><img src="/icon.png" width={32} height={32} style={{ borderRadius: "7px" }} alt="DIQ" /><span className={styles.headerLogo}>Diamond IQ Baseball</span></a>
           <span className={styles.headerSub}>{facilityProfile?.name ?? 'Facility Portal'}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
