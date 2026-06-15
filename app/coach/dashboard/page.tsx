@@ -820,69 +820,204 @@ function GamesTab({ user, flash }: any) {
 function RosterTab({ user }: any) {
   const [players, setPlayers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searching, setSearching] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteName, setInviteName] = useState('')
+  const [inviting, setInviting] = useState(false)
+  const [showInvite, setShowInvite] = useState(false)
+  const [msg, setMsg] = useState('')
 
   useEffect(() => { loadRoster() }, [user])
 
   async function loadRoster() {
+    const { data: coachData } = await supabase
+      .from('coach_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+    if (!coachData) { setLoading(false); return }
+
     const { data } = await supabase
-      .from('game_stats')
-      .select('player_id, player:player_profiles(id, public_slug, user:users(name, email), grad_year, positions, diq_score)')
-      .eq('verified_by_coach', user.id)
-    
-    // Deduplicate by player_id
-    const seen = new Set()
-    const unique: any[] = []
-    ;(data ?? []).forEach((g: any) => {
-      if (!seen.has(g.player_id)) {
-        seen.add(g.player_id)
-        unique.push(g.player)
-      }
-    })
-    setPlayers(unique.filter(Boolean))
+      .from('coach_players')
+      .select('player:player_profiles(id, public_slug, user:users(name, email), grad_year, positions, diq_score, parent_token)')
+      .eq('coach_id', coachData.id)
+    setPlayers((data ?? []).map((d: any) => d.player).filter(Boolean))
     setLoading(false)
+  }
+
+  async function searchPlayers(q: string) {
+    setSearch(q)
+    if (q.length < 2) { setSearchResults([]); return }
+    setSearching(true)
+    const { data } = await supabase
+      .from('player_profiles')
+      .select('id, public_slug, grad_year, positions, diq_score, user:users(name, email)')
+      .ilike('users.name', `%${q}%`)
+      .limit(8)
+    setSearchResults((data ?? []).filter((p: any) => p.user?.name))
+    setSearching(false)
+  }
+
+  async function addToRoster(player: any) {
+    const { data: coachData } = await supabase
+      .from('coach_profiles').select('id').eq('user_id', user.id).single()
+    if (!coachData) return
+    await supabase.from('coach_players').upsert({
+      coach_id: coachData.id,
+      player_id: player.id,
+    }, { onConflict: 'coach_id,player_id', ignoreDuplicates: true })
+    setSearch('')
+    setSearchResults([])
+    setMsg(`✅ ${player.user?.name} added to roster`)
+    setTimeout(() => setMsg(''), 3000)
+    await loadRoster()
+  }
+
+  async function handleInvite() {
+    if (!inviteEmail.trim() || !inviteName.trim()) {
+      setMsg('Please enter name and email')
+      return
+    }
+    setInviting(true)
+    try {
+      // Send invite email via Supabase
+      const { error } = await supabase.functions.invoke('send-player-invite', {
+        body: { email: inviteEmail.trim(), name: inviteName.trim(), coach_name: user.name }
+      })
+      if (error) throw error
+      setMsg(`✅ Invite sent to ${inviteEmail}`)
+      setInviteEmail('')
+      setInviteName('')
+      setShowInvite(false)
+      setTimeout(() => setMsg(''), 4000)
+    } catch {
+      setMsg('Failed to send invite — please try again')
+    } finally {
+      setInviting(false)
+    }
+  }
+
+  async function removeFromRoster(playerId: string) {
+    const { data: coachData } = await supabase
+      .from('coach_profiles').select('id').eq('user_id', user.id).single()
+    if (!coachData) return
+    await supabase.from('coach_players')
+      .delete()
+      .eq('coach_id', coachData.id)
+      .eq('player_id', playerId)
+    await loadRoster()
   }
 
   if (loading) return <div style={{ textAlign: 'center', color: '#73726c', padding: 40 }}>Loading...</div>
 
-  if (players.length === 0) return (
-    <div style={{ background: '#fff', borderRadius: 14, padding: 48, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: '#042C53', marginBottom: 6 }}>No roster yet</div>
-      <p style={{ fontSize: 13, color: '#73726c', margin: 0 }}>Players will appear here after you upload their game stats.</p>
-    </div>
-  )
-
   return (
-    <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-        <thead>
-          <tr style={{ background: '#f8f8f7' }}>
-            {['Player', 'Positions', 'Grad Year', 'DIQ Score', 'Profile'].map(h => (
-              <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', borderBottom: '1px solid #e5e5e5' }}>{h}</th>
+    <div>
+      {msg && <div style={{ background: msg.startsWith('✅') ? '#E8F5E9' : '#FFEBEE', color: msg.startsWith('✅') ? '#27500A' : '#B71C1C', padding: '10px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13, fontWeight: 600 }}>{msg}</div>}
+
+      {/* Search / Add Player */}
+      <div style={{ background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 16 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#042C53', marginBottom: 12 }}>Add Player to Roster</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <input
+            value={search}
+            onChange={e => searchPlayers(e.target.value)}
+            placeholder="Search by player name..."
+            style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 13, outline: 'none' }}
+          />
+          <button onClick={() => setShowInvite(!showInvite)}
+            style={{ padding: '10px 16px', background: '#f0f0f0', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#042C53', cursor: 'pointer' }}>
+            📧 Invite
+          </button>
+        </div>
+
+        {/* Search results */}
+        {searchResults.length > 0 && (
+          <div style={{ border: '1px solid #eee', borderRadius: 8, overflow: 'hidden' }}>
+            {searchResults.map(p => (
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #f0f0f0' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{p.user?.name}</div>
+                  <div style={{ fontSize: 11, color: '#73726c' }}>{(p.positions ?? []).join(', ')} · Class of {p.grad_year}</div>
+                </div>
+                <button onClick={() => addToRoster(p)}
+                  style={{ padding: '6px 14px', background: '#042C53', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  + Add
+                </button>
+              </div>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {players.map((p: any) => (
-            <tr key={p.id} style={{ borderBottom: '1px solid #f4f3ef' }}>
-              <td style={{ padding: '12px 16px', fontWeight: 600, color: '#042C53' }}>{p.user?.name ?? '—'}</td>
-              <td style={{ padding: '12px 16px', color: '#73726c' }}>{(p.positions ?? []).join(', ') || '—'}</td>
-              <td style={{ padding: '12px 16px', color: '#73726c' }}>{p.grad_year ?? '—'}</td>
-              <td style={{ padding: '12px 16px' }}>
-                <span style={{ fontWeight: 700, color: '#042C53' }}>{(p.diq_score ?? 0).toFixed(1)}</span>
-              </td>
-              <td style={{ padding: '12px 16px' }}>
-                {p.public_slug ? (
-                  <Link href={`/player/${p.public_slug}`} target="_blank"
-                    style={{ color: '#185FA5', fontSize: 12, textDecoration: 'none', fontWeight: 500 }}>
-                    View →
-                  </Link>
-                ) : <span style={{ color: '#B4B2A9', fontSize: 12 }}>No profile</span>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          </div>
+        )}
+
+        {/* Invite form */}
+        {showInvite && (
+          <div style={{ marginTop: 12, padding: 14, background: '#f8f8f7', borderRadius: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#042C53', marginBottom: 10 }}>Invite Player to Diamond IQ Baseball</div>
+            <input value={inviteName} onChange={e => setInviteName(e.target.value)}
+              placeholder="Player's full name"
+              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }} />
+            <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
+              type="email" placeholder="Player's email"
+              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 13, outline: 'none', marginBottom: 10, boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handleInvite} disabled={inviting}
+                style={{ padding: '9px 18px', background: '#042C53', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                {inviting ? 'Sending...' : 'Send Invite'}
+              </button>
+              <button onClick={() => setShowInvite(false)}
+                style={{ padding: '9px 14px', background: '#fff', border: '1px solid #ddd', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Roster list */}
+      {players.length === 0 ? (
+        <div style={{ background: '#fff', borderRadius: 14, padding: 48, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#042C53', marginBottom: 6 }}>No roster yet</div>
+          <p style={{ fontSize: 13, color: '#73726c', margin: 0 }}>Search for players above or send invites to build your roster.</p>
+        </div>
+      ) : (
+        <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#f8f8f7' }}>
+                {['Player', 'Positions', 'Grad Year', 'DIQ Score', 'Profile', ''].map(h => (
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', borderBottom: '1px solid #e5e5e5' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {players.map((p: any) => (
+                <tr key={p.id} style={{ borderBottom: '1px solid #f4f3ef' }}>
+                  <td style={{ padding: '12px 16px', fontWeight: 600, color: '#042C53' }}>{p.user?.name ?? '—'}</td>
+                  <td style={{ padding: '12px 16px', color: '#73726c' }}>{(p.positions ?? []).join(', ') || '—'}</td>
+                  <td style={{ padding: '12px 16px', color: '#73726c' }}>{p.grad_year ?? '—'}</td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <span style={{ fontWeight: 700, color: '#042C53' }}>{(p.diq_score ?? 0).toFixed(1)}</span>
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    {p.public_slug ? (
+                      <Link href={`/player/${p.public_slug}`} target="_blank"
+                        style={{ color: '#185FA5', fontSize: 12, textDecoration: 'none', fontWeight: 500 }}>
+                        View →
+                      </Link>
+                    ) : <span style={{ color: '#B4B2A9', fontSize: 12 }}>No profile</span>}
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <button onClick={() => removeFromRoster(p.id)}
+                      style={{ background: 'none', border: 'none', color: '#B4B2A9', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
