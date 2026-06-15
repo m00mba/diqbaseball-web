@@ -3,947 +3,1267 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import styles from './dashboard.module.css'
+import Papa from 'papaparse'
 
-const POSITIONS = ['C','1B','2B','3B','SS','LF','CF','RF','OF','DH','RHP','LHP','UTIL']
-const SEASON_TYPES = [
-  { key: 'hs_varsity', label: 'HS Varsity' },
-  { key: 'hs_jv', label: 'HS JV' },
-  { key: 'travel', label: 'Travel Ball' },
-  { key: 'showcase', label: 'Showcase' },
-  { key: 'college', label: 'College' },
-  { key: 'other', label: 'Other' },
-]
+type Tab = 'upload' | 'games' | 'roster' | 'highlights'
 
-type Tab = 'overview' | 'stats' | 'verified' | 'profile' | 'settings'
-
-export default function PlayerDashboard() {
+export default function CoachDashboard() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState<Tab>('overview')
+  const [activeTab, setActiveTab] = useState<Tab>('upload')
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  useEffect(() => { loadUser() }, [])
 
-  async function loadData() {
+  async function loadUser() {
     const { data: { user: authUser } } = await supabase.auth.getUser()
-    if (!authUser) { router.push('/login'); return }
-
-    const { data: userData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authUser.id)
-      .single()
-
-    if (!userData || userData.role !== 'player') {
-      await supabase.auth.signOut()
-      router.push('/login')
-      return
-    }
-
-    setUser(userData)
-
-    const { data: profileData } = await supabase
-      .from('player_profiles')
-      .select('*')
-      .eq('user_id', authUser.id)
-      .single()
-
-    setProfile(profileData)
+    if (!authUser) { router.push('/coach/login'); return }
+    const { data } = await supabase.from('users').select('*').eq('id', authUser.id).single()
+    if (!data || data.role !== 'coach') { await supabase.auth.signOut(); router.push('/coach/login'); return }
+    setUser(data)
     setLoading(false)
   }
 
   function flash(msg: string, isError = false) {
     if (isError) setErrorMsg(msg)
     else setSuccessMsg(msg)
-    setTimeout(() => { setSuccessMsg(''); setErrorMsg('') }, 3000)
-  }
-
-  async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.push('/login')
+    setTimeout(() => { setSuccessMsg(''); setErrorMsg('') }, 4000)
   }
 
   if (loading) return (
-    <div className={styles.loadingPage}>
-      <div className={styles.spinner} />
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f3ef' }}>
+      <div style={{ width: 36, height: 36, border: '3px solid #e5e5e5', borderTopColor: '#185FA5', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   )
 
   return (
-    <div className={styles.page}>
-      {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <Link href="/" className={styles.headerLogo}>Diamond IQ</Link>
-          <span className={styles.headerName}>{user?.name}</span>
+    <div style={{ minHeight: '100vh', background: '#f4f3ef', fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif' }}>
+      <header style={{ background: '#042C53', padding: '12px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <a href="https://iqbio.io" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}><img src="/icon.png" width={32} height={32} style={{ borderRadius: "7px" }} alt="DIQ" /><span style={{ color: "#fff", fontSize: 18, fontWeight: 800 }}>Diamond IQ</span><span style={{ color: '#C9A227', fontSize: 9, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', border: '1px solid #C9A227', padding: '1px 5px', borderRadius: 3, marginLeft: 4 }}>Baseball</span></a>
+          <span style={{ color: '#B5D4F4', fontSize: 13 }}>{user?.name}</span>
         </div>
-        <div className={styles.headerRight}>
-          {profile?.public_slug && (
-            <Link href={`/player/${profile.public_slug}`} target="_blank" className={styles.headerProfileLink}>
-              👤 Public Profile
-            </Link>
-          )}
-          <button className={styles.signOutBtn} onClick={handleSignOut}>Sign Out</button>
-        </div>
+        <button
+          onClick={async () => { await supabase.auth.signOut(); router.push('/coach/login') }}
+          style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '6px 14px', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+        >Sign Out</button>
       </header>
 
-      {successMsg && <div className={styles.successBar}>{successMsg}</div>}
-      {errorMsg && <div className={styles.errorBar}>{errorMsg}</div>}
+      {successMsg && <div style={{ background: '#E8F5E9', color: '#1B5E20', padding: '12px 32px', fontSize: 13, fontWeight: 500 }}>{successMsg}</div>}
+      {errorMsg && <div style={{ background: '#FFEBEE', color: '#B71C1C', padding: '12px 32px', fontSize: 13, fontWeight: 500 }}>{errorMsg}</div>}
 
-      {/* Tabs */}
-      <div className={styles.tabs}>
+      <div style={{ background: '#fff', borderBottom: '1px solid #e5e5e5', display: 'flex', padding: '0 32px', gap: 4 }}>
         {([
-          { key: 'overview', label: '📊 Overview' },
-          { key: 'stats', label: '⚾ Game Stats' },
-          { key: 'verified', label: '✅ Verified' },
-          { key: 'profile', label: '👤 Profile' },
-          { key: 'settings', label: '⚙️ Settings' },
+          { key: 'upload', label: '⬆️ Upload Game Stats' },
+          { key: 'games', label: '📋 Game History' },
+          { key: 'roster', label: '👥 Roster' },
+          { key: 'highlights', label: '🎬 Highlights' },
         ] as { key: Tab; label: string }[]).map(t => (
-          <button
-            key={t.key}
-            className={`${styles.tab} ${activeTab === t.key ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab(t.key)}
-          >
-            {t.label}
-          </button>
+          <button key={t.key} onClick={() => setActiveTab(t.key)}
+            style={{
+              padding: '14px 16px', fontSize: 13, fontWeight: 500, background: 'none', border: 'none',
+              borderBottom: activeTab === t.key ? '2px solid #185FA5' : '2px solid transparent',
+              color: activeTab === t.key ? '#042C53' : '#73726c', cursor: 'pointer', whiteSpace: 'nowrap',
+            }}
+          >{t.label}</button>
         ))}
       </div>
 
-      <div className={styles.content}>
-        {activeTab === 'overview' && <OverviewTab user={user} profile={profile} flash={flash} />}
-        {activeTab === 'stats' && <StatsTab profile={profile} flash={flash} />}
-        {activeTab === 'verified' && <VerifiedTab profile={profile} />}
-        {activeTab === 'profile' && <ProfileTab user={user} profile={profile} flash={flash} onSave={loadData} />}
-        {activeTab === 'settings' && <SettingsTab user={user} profile={profile} flash={flash} />}
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: 32 }}>
+        {activeTab === 'upload' && <UploadTab user={user} flash={flash} />}
+        {activeTab === 'games' && <GamesTab user={user} flash={flash} />}
+        {activeTab === 'roster' && <RosterTab user={user} />}
+        {activeTab === 'highlights' && <HighlightsTab user={user} flash={flash} />}
       </div>
     </div>
   )
 }
 
-// ── Overview Tab ──────────────────────────────────────────────────────────────
-function OverviewTab({ user, profile, flash }: any) {
-  const [sessions, setSessions] = useState<any[]>([])
-  const [recentGames, setRecentGames] = useState<any[]>([])
-
-  useEffect(() => {
-    if (!profile) return
-    supabase.from('verified_measurables')
-      .select('*, facility:facility_profiles(name)')
-      .eq('player_id', profile.id)
-      .order('verified_at', { ascending: false })
-      .limit(3)
-      .then(({ data }) => setSessions(data ?? []))
-
-    supabase.from('game_stats')
-      .select('*')
-      .eq('player_id', profile.id)
-      .order('game_date', { ascending: false })
-      .limit(5)
-      .then(({ data }) => setRecentGames(data ?? []))
-  }, [profile])
-
-  const latestSession = sessions[0]
-
-  return (
-    <div className={styles.tabContent}>
-      {/* DIQ Score + quick stats */}
-      <div className={styles.overviewHero}>
-        <div className={styles.diqScoreCard}>
-          <div className={styles.diqScoreVal}>{(profile?.diq_score ?? 0).toFixed(1)}</div>
-          <div className={styles.diqScoreLabel}>DIQ Score</div>
-        </div>
-        <div className={styles.overviewStats}>
-          <div className={styles.overviewStat}>
-            <div className={styles.overviewStatVal}>{sessions.length}</div>
-            <div className={styles.overviewStatLabel}>Verified Sessions</div>
-          </div>
-          <div className={styles.overviewStat}>
-            <div className={styles.overviewStatVal}>{recentGames.length}</div>
-            <div className={styles.overviewStatLabel}>Games Logged</div>
-          </div>
-          <div className={styles.overviewStat}>
-            <div className={styles.overviewStatVal}>{Math.round(profile?.profile_pct ?? 0)}%</div>
-            <div className={styles.overviewStatLabel}>Profile Complete</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Latest verified session */}
-      {latestSession && (
-        <div className={styles.card}>
-          <h3 className={styles.cardTitle}>Latest Verified Session</h3>
-          <p className={styles.cardMeta}>{latestSession.facility?.name} · {new Date(latestSession.verified_at).toLocaleDateString()}</p>
-          <div className={styles.metricsGrid}>
-            {[
-              ['exit_velo', 'Max EV', 'mph'],
-              ['avg_exit_velo', 'Avg EV', 'mph'],
-              ['bat_speed', 'Bat Speed', 'mph'],
-              ['launch_angle', 'LA', '°'],
-              ['fb_velo', 'FB Velo', 'mph'],
-              ['arm_velo', 'Arm Velo', 'mph'],
-            ].filter(([key]) => latestSession[key] != null).map(([key, label, unit]) => (
-              <div key={key} className={styles.metricCard}>
-                <div className={styles.metricVal}>{latestSession[key]}{unit}</div>
-                <div className={styles.metricLbl}>{label}</div>
-              </div>
-            ))}
-          </div>
-          {latestSession.ai_report && (
-            <div className={styles.aiBox}>
-              <div className={styles.aiBoxTitle}>🏟 Facility Analysis</div>
-              <p className={styles.aiBoxText}>
-                {latestSession.ai_report.replace(/^#{1,3}\s*(STRENGTHS|OPPORTUNITIES|RECOMMENDED DRILLS)[:\s]*/gim, '').replace(/\*\*/g, '').trim().substring(0, 400)}
-                {latestSession.ai_report.length > 400 ? '...' : ''}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Profile completion nudge */}
-      {(profile?.profile_pct ?? 0) < 80 && (
-        <div className={styles.nudgeCard}>
-          <div className={styles.nudgeTitle}>Complete Your Profile</div>
-          <p className={styles.nudgeText}>A complete profile gets more visibility from coaches and scouts. Add your bio, academic info, and highlight videos.</p>
-          <button className={styles.nudgeBtn} onClick={() => {}}>Complete Profile →</button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Stats Tab ─────────────────────────────────────────────────────────────────
-function StatsTab({ profile, flash }: any) {
-  const [games, setGames] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [editingGame, setEditingGame] = useState<any>(null)
-  const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState<string | null>(null)
-
-  // Form state
+// ── Upload Tab ────────────────────────────────────────────────────────────────
+function UploadTab({ user, flash }: any) {
+  const fileRef = useRef<HTMLInputElement>(null)
   const [gameDate, setGameDate] = useState(new Date().toISOString().slice(0, 10))
   const [opponent, setOpponent] = useState('')
-  const [seasonType, setSeasonType] = useState('')
+  const [gameNumber, setGameNumber] = useState('1')
+  const [seasonType, setSeasonType] = useState('travel')
   const [seasonYear, setSeasonYear] = useState(new Date().getFullYear().toString())
   const [result, setResult] = useState('W')
-  const [ab, setAb] = useState(''); const [h, setH] = useState(''); const [hr, setHr] = useState('')
-  const [rbi, setRbi] = useState(''); const [bb, setBb] = useState(''); const [so, setSo] = useState('')
-  const [sb, setSb] = useState(''); const [doubles, setDoubles] = useState(''); const [triples, setTriples] = useState('')
-  const [hbp, setHbp] = useState(''); const [runs, setRuns] = useState('')
-  // Pitcher stats
-  const [ip, setIp] = useState(''); const [er, setEr] = useState(''); const [kP, setKP] = useState('')
-  const [bbP, setBbP] = useState(''); const [peakVelo, setPeakVelo] = useState('')
-  const [isPitcher, setIsPitcher] = useState(false)
+  const [parsedRows, setParsedRows] = useState<any[]>([])
+  const [fileName, setFileName] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importResults, setImportResults] = useState<any>(null)
 
-  useEffect(() => {
-    if (profile) loadGames()
-    const positions = profile?.positions ?? []
-    setIsPitcher(positions.some((p: string) => ['RHP', 'LHP'].includes(p)))
-  }, [profile])
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFileName(file.name)
+    setParsedRows([])
+    setImportResults(null)
 
-  async function loadGames() {
-    setLoading(true)
-    const { data } = await supabase
-      .from('game_stats')
-      .select('*')
-      .eq('player_id', profile.id)
-      .order('game_date', { ascending: false })
-    setGames(data ?? [])
-    setLoading(false)
+    Papa.parse(file, {
+      skipEmptyLines: true,
+      complete: (results) => {
+        const allRows = results.data as string[][]
+        
+        // Find the header row - it contains 'Last' and 'First'
+        const headerRowIndex = allRows.findIndex(row => 
+          row.some(cell => cell?.trim() === 'Last') && 
+          row.some(cell => cell?.trim() === 'First')
+        )
+        
+        if (headerRowIndex === -1) {
+          flash('Could not find player data in this CSV. Make sure you exported from GameChanger Stats.', true)
+          return
+        }
+
+        const headers = allRows[headerRowIndex].map(h => h?.replace(/"/g, '').trim())
+        
+        // Get column indices by position (handles duplicate column names)
+        const idx = (name: string, startFrom = 0) => {
+          for (let i = startFrom; i < headers.length; i++) {
+            if (headers[i] === name) return i
+          }
+          return -1
+        }
+
+        // Batting column indices (first occurrence)
+        const COL = {
+          last: idx('Last'),
+          first: idx('First'),
+          ab: idx('AB'),
+          h: idx('H'),
+          doubles: idx('2B'),
+          triples: idx('3B'),
+          hr: idx('HR'),
+          rbi: idx('RBI'),
+          runs: idx('R'),
+          bb: idx('BB'),
+          so: idx('SO'),
+          hbp: idx('HBP'),
+          sb: idx('SB'),
+          // Pitching (after IP column)
+          ip: idx('IP'),
+          w: idx('W'),
+          l: idx('L'),
+          er: idx('ER'),
+          era: idx('ERA'),
+          whip: idx('WHIP'),
+          pitchCount: idx('#P'),
+        }
+
+        // Pitching SO, BB, HBP are after IP column
+        const pitchingSO = idx('SO', COL.ip)
+        const pitchingBB = idx('BB', COL.ip)
+        const pitchingHBP = idx('HBP', COL.ip)
+
+        const dataRows = allRows.slice(headerRowIndex + 1)
+
+        const parsed = dataRows
+          .map(row => {
+            const get = (i: number) => row[i]?.replace(/"/g, '').trim() ?? ''
+            return {
+              Last: get(COL.last),
+              First: get(COL.first),
+              AB: get(COL.ab),
+              H: get(COL.h),
+              '2B': get(COL.doubles),
+              '3B': get(COL.triples),
+              HR: get(COL.hr),
+              RBI: get(COL.rbi),
+              R: get(COL.runs),
+              BB: get(COL.bb),
+              SO: get(COL.so),
+              HBP: get(COL.hbp),
+              SB: get(COL.sb),
+              IP: get(COL.ip),
+              W: get(COL.w),
+              L: get(COL.l),
+              ER: get(COL.er),
+              ERA: get(COL.era),
+              WHIP: get(COL.whip),
+              PITCH_COUNT: get(COL.pitchCount),
+              'SO_P': pitchingSO >= 0 ? get(pitchingSO) : '0',
+              'BB_P': pitchingBB >= 0 ? get(pitchingBB) : '0',
+              'HBP_P': pitchingHBP >= 0 ? get(pitchingHBP) : '0',
+            }
+          })
+          .filter(row =>
+            row.Last && row.First &&
+            row.Last !== '' &&
+            row.Last.toLowerCase() !== 'totals' &&
+            !row.Last.toLowerCase().startsWith('glossary') &&
+            !row.Last.toLowerCase().startsWith('teamname')
+          )
+
+        setParsedRows(parsed)
+      }
+    })
   }
 
-  function clearForm() {
-    setOpponent(''); setAb(''); setH(''); setDoubles(''); setTriples('')
-    setHr(''); setRbi(''); setBb(''); setSo(''); setSb(''); setHbp(''); setRuns('')
-    setIp(''); setEr(''); setKP(''); setBbP(''); setPeakVelo('')
-    setGameDate(new Date().toISOString().slice(0, 10))
-    setSeasonType(''); setSeasonYear(new Date().getFullYear().toString())
-    setResult('W'); setEditingGame(null)
-  }
+  async function handleImport() {
+    if (!opponent.trim()) { flash('Please enter the opponent name', true); return }
+    if (parsedRows.length === 0) { flash('Please upload a GameChanger CSV first', true); return }
 
-  function startEdit(game: any) {
-    setEditingGame(game)
-    setOpponent(game.opponent ?? ''); setGameDate(game.game_date ?? '')
-    setSeasonType(game.season_type ?? ''); setSeasonYear(game.season_year?.toString() ?? '')
-    setResult(game.result ?? 'W')
-    setAb(game.ab?.toString() ?? ''); setH(game.h?.toString() ?? '')
-    setDoubles(game.doubles?.toString() ?? ''); setTriples(game.triples?.toString() ?? '')
-    setHr(game.hr?.toString() ?? ''); setRbi(game.rbi?.toString() ?? '')
-    setBb(game.bb?.toString() ?? ''); setSo(game.so?.toString() ?? '')
-    setSb(game.sb?.toString() ?? ''); setHbp(game.hbp?.toString() ?? '')
-    setRuns(game.runs?.toString() ?? '')
-    setIp(game.ip?.toString() ?? ''); setEr(game.er?.toString() ?? '')
-    setKP(game.k_p?.toString() ?? ''); setBbP(game.bb_p?.toString() ?? '')
-    setPeakVelo(game.peak_velo?.toString() ?? '')
-    setShowForm(true)
-  }
+    setImporting(true)
+    const matched: string[] = []
+    const unmatched: string[] = []
+    const duplicates: string[] = []
+    const playerLogged: string[] = []
 
-  async function handleSave() {
-    if (!opponent.trim() || !seasonType) {
-      flash('Opponent and season type are required', true); return
-    }
-    setSaving(true)
-    try {
+    for (const row of parsedRows) {
+      const firstName = row['First']?.trim()
+      const lastName = row['Last']?.trim()
+      if (!firstName || !lastName) continue
+
+      const fullName = `${firstName} ${lastName}`
+
+      // Normalize: lowercase, strip ALL apostrophe/punctuation variants, collapse spaces
+      const normalize = (s: string) => s.toLowerCase()
+        .replace(/['''‘’`´]/g, '')
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+
+      // Search by last name - strip apostrophes for matching
+      const lastNameClean = normalize(lastName)
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, name, player_profile:player_profiles(id)')
+        .ilike('name', `%${lastNameClean}%`)
+        .eq('role', 'player')
+
+      // Find best match
+      let playerUser = users?.find(u =>
+        normalize(u.name).includes(normalize(lastName)) &&
+        normalize(u.name).includes(normalize(firstName))
+      )
+
+      // Fallback 1 - first name is an initial (e.g. "J Forste") - match on last name only
+      if (!playerUser && firstName.length <= 2) {
+        const lastMatches = users?.filter(u => normalize(u.name).includes(normalize(lastName))) ?? []
+        if (lastMatches.length === 1) playerUser = lastMatches[0]
+      }
+
+      // Fallback 2 - first name initial matches first letter of DB name (e.g. "J" matches "Jacob")
+      if (!playerUser && firstName.length <= 2) {
+        playerUser = users?.find(u => {
+          const parts = normalize(u.name).split(' ')
+          return parts.some(p => p.startsWith(normalize(firstName))) &&
+            normalize(u.name).includes(normalize(lastName))
+        })
+      }
+
+      if (!playerUser) {
+        unmatched.push(fullName)
+        continue
+      }
+      const playerProfile = Array.isArray(playerUser.player_profile)
+        ? playerUser.player_profile[0]
+        : playerUser.player_profile
+
+      if (!playerProfile?.id) {
+        unmatched.push(fullName)
+        continue
+      }
+
+      let wasOverwrite = false
+      // Check for duplicate - same player, same date, same opponent, same game number
+      const { data: existing } = await supabase
+        .from('game_stats')
+        .select('id, source, gamechanger_game_id')
+        .eq('player_id', playerProfile.id)
+        .eq('game_date', gameDate)
+        .ilike('opponent', `%${opponent.trim().split(' ')[0]}%`)
+        .ilike('gamechanger_game_id', `%_g${gameNumber}`)
+
+      if (existing && existing.length > 0) {
+        const hasCoachEntry = existing.some(e => e.source === 'gamechanger')
+        if (hasCoachEntry) {
+          // Already imported by coach — skip
+          duplicates.push(fullName)
+          continue
+        } else {
+          // Player logged manually (possibly multiple) — coach import trumps, delete all
+          const ids = existing.map(e => e.id)
+          await supabase.from('game_stats').delete().in('id', ids)
+          wasOverwrite = true
+        }
+      }
+
+      // Parse batting stats
+      const gameId = `gc_${playerProfile.id}_${gameDate}_${opponent.toLowerCase().replace(/\s+/g, '_')}_g${gameNumber}`
+
+      const ab = parseInt(row['AB']) || 0
+      const h = parseInt(row['H']) || 0
+      const doubles = parseInt(row['2B']) || 0
+      const triples = parseInt(row['3B']) || 0
+      const hr = parseInt(row['HR']) || 0
+      const rbi = parseInt(row['RBI']) || 0
+      const runs = parseInt(row['R']) || 0
+      const bb = parseInt(row['BB']) || 0
+      const so = parseInt(row['SO']) || 0
+      const hbp = parseInt(row['HBP']) || 0
+      const sb = parseInt(row['SB']) || 0
+
+      // Parse pitching stats
+      const ip = parseFloat(row['IP']) || 0
+      const er = parseInt(row['ER']) || 0
+      const wins = parseInt(row['W']) || 0
+      const losses = parseInt(row['L']) || 0
+      const kP = parseInt(row['SO_P']) || 0
+      const bbP = parseInt(row['BB_P']) || 0
+      const hbpP = parseInt(row['HBP_P']) || 0
+
       const payload: any = {
-        player_id: profile.id,
-        opponent: opponent.trim(),
+        player_id: playerProfile.id,
+        logged_by: user.id,
         game_date: gameDate,
+        opponent: opponent.trim(),
+        level: 'hs_varsity',
         season_type: seasonType,
-        season_year: parseInt(seasonYear) || new Date().getFullYear(),
+        season_year: parseInt(seasonYear),
         result,
-        ab: parseInt(ab) || 0,
-        h: parseInt(h) || 0,
-        doubles: parseInt(doubles) || 0,
-        triples: parseInt(triples) || 0,
-        hr: parseInt(hr) || 0,
-        rbi: parseInt(rbi) || 0,
-        bb: parseInt(bb) || 0,
-        so: parseInt(so) || 0,
-        sb: parseInt(sb) || 0,
-        hbp: parseInt(hbp) || 0,
-        runs: parseInt(runs) || 0,
-      }
-      if (isPitcher) {
-        payload.ip = parseFloat(ip) || 0
-        payload.er = parseInt(er) || 0
-        payload.k_p = parseInt(kP) || 0
-        payload.bb_p = parseInt(bbP) || 0
-        payload.peak_velo = parseInt(peakVelo) || null
+        ab, h, doubles, triples, hr, rbi, runs,
+        bb, k: so, hbp, sb,
+        source: 'gamechanger',
+        verified_by_coach: user.id,
+        gamechanger_game_id: gameId,
+        game_number: parseInt(gameNumber),
       }
 
-      if (editingGame) {
-        await supabase.from('game_stats').update(payload).eq('id', editingGame.id)
-        flash('✅ Game updated')
-      } else {
-        await supabase.from('game_stats').insert(payload)
-        flash('✅ Game logged')
+      if (ip > 0) {
+        payload.ip = ip
+        payload.er = er
+        payload.k_p = kP
+        payload.bb_p = bbP
+        payload.hbp_p = hbpP
+        payload.era = parseFloat(row['ERA']) || null
+        payload.whip = parseFloat(row['WHIP']) || null
+        payload.pitch_count = parseInt(row['PITCH_COUNT']) || null
+        if (wins > 0) payload.result = 'W'
+        if (losses > 0) payload.result = 'L'
       }
-      clearForm(); setShowForm(false); await loadGames()
-    } catch (e: unknown) {
-      flash(e instanceof Error ? e.message : 'Failed to save', true)
-    } finally {
-      setSaving(false)
+
+      const { error } = await supabase.from('game_stats').insert(payload)
+      if (!error) {
+        if (wasOverwrite) playerLogged.push(fullName)
+        else matched.push(fullName)
+      } else {
+        console.error(`Error importing ${fullName}:`, error.message)
+        unmatched.push(`${fullName} (${error.message})`)
+      }
+    }
+
+    setImportResults({ matched, unmatched, duplicates, playerLogged })
+    setImporting(false)
+
+    if (matched.length > 0) {
+      flash(`✅ Imported stats for ${matched.length} players`)
+      setParsedRows([])
+      setFileName('')
+      if (fileRef.current) fileRef.current.value = ''
     }
   }
-
-  async function handleDelete(id: string) {
-    if (!confirm('Delete this game?')) return
-    setDeleting(id)
-    await supabase.from('game_stats').delete().eq('id', id)
-    await loadGames()
-    setDeleting(null)
-  }
-
-  // Group by season
-  const seasons: Record<string, any[]> = {}
-  games.forEach(g => {
-    const year = g.season_year ?? new Date(g.game_date).getFullYear()
-    const type = SEASON_TYPES.find(s => s.key === g.season_type)?.label ?? g.season_type ?? 'Season'
-    const key = `${year} ${type}`
-    if (!seasons[key]) seasons[key] = []
-    seasons[key].push(g)
-  })
 
   return (
-    <div className={styles.tabContent}>
-      <div className={styles.tabHeader}>
-        <h2 className={styles.tabTitle}>Game Statistics</h2>
-        <button className={styles.addBtn} onClick={() => { clearForm(); setShowForm(true) }}>+ Log Game</button>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ background: '#fff', borderRadius: 14, padding: 28, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#042C53', margin: '0 0 6px' }}>Upload GameChanger Stats</h2>
+        <p style={{ fontSize: 13, color: '#73726c', margin: '0 0 24px', lineHeight: 1.6 }}>
+          Export a single-game stats CSV from GameChanger, fill in the game details below, and upload to automatically log stats for all matched players.
+        </p>
 
-      {showForm && (
-        <div className={styles.formCard}>
-          <h3 className={styles.formTitle}>{editingGame ? 'Edit Game' : 'Log Game'}</h3>
-
-          <div className={styles.formGrid2}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Date</label>
-              <input type="date" className={styles.input} value={gameDate} onChange={e => setGameDate(e.target.value)} />
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Opponent</label>
-              <input className={styles.input} value={opponent} onChange={e => setOpponent(e.target.value)} placeholder="Team name" />
-            </div>
+        {/* Game details */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 14 }}>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5 }}>Game Date *</label>
+            <input type="date" value={gameDate} onChange={e => setGameDate(e.target.value)}
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' as const }} />
           </div>
-
-          <div className={styles.formGrid2}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Season Type <span style={{ color: '#CC2E2E' }}>*</span></label>
-              <select className={styles.select} value={seasonType} onChange={e => setSeasonType(e.target.value)}>
-                <option value="">Select season type...</option>
-                {SEASON_TYPES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-              </select>
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Season Year</label>
-              <input className={styles.input} value={seasonYear} onChange={e => setSeasonYear(e.target.value)} placeholder="2026" type="number" />
-            </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5 }}>Opponent *</label>
+            <input value={opponent} onChange={e => setOpponent(e.target.value)}
+              placeholder="e.g. Carolina Hawks 15U"
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' as const }} />
           </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Result</label>
-            <div className={styles.resultBtns}>
-              {['W', 'L', 'T'].map(r => (
-                <button key={r} className={`${styles.resultBtn} ${result === r ? styles.resultBtnActive : ''}`}
-                  onClick={() => setResult(r)}>{r}</button>
-              ))}
-            </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5 }}>Season Type</label>
+            <select value={seasonType} onChange={e => setSeasonType(e.target.value)}
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, background: '#fff' }}>
+              <option value="hs_varsity">HS Varsity</option>
+              <option value="hs_jv">HS JV</option>
+              <option value="travel">Travel Ball</option>
+              <option value="showcase">Showcase</option>
+              <option value="college">College</option>
+            </select>
           </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5 }}>Season Year</label>
+            <input value={seasonYear} onChange={e => setSeasonYear(e.target.value)} type="number"
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' as const }} />
+          </div>
+        </div>
 
-          <h4 className={styles.formSectionTitle}>Batting</h4>
-          <div className={styles.statsGrid}>
-            {[
-              { label: 'AB', value: ab, setter: setAb },
-              { label: 'H', value: h, setter: setH },
-              { label: '2B', value: doubles, setter: setDoubles },
-              { label: '3B', value: triples, setter: setTriples },
-              { label: 'HR', value: hr, setter: setHr },
-              { label: 'RBI', value: rbi, setter: setRbi },
-              { label: 'R', value: runs, setter: setRuns },
-              { label: 'BB', value: bb, setter: setBb },
-              { label: 'SO', value: so, setter: setSo },
-              { label: 'SB', value: sb, setter: setSb },
-              { label: 'HBP', value: hbp, setter: setHbp },
-            ].map(({ label, value, setter }) => (
-              <div key={label} className={styles.statInputGroup}>
-                <label className={styles.statLabel}>{label}</label>
-                <input type="number" min="0" className={styles.statInput}
-                  value={value} onChange={e => setter(e.target.value)} placeholder="0" />
-              </div>
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5 }}>Game # <span style={{ fontWeight: 400, textTransform: 'none', color: '#aaa' }}>(use 2 for doubleheader game 2)</span></label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {['1', '2', '3'].map(n => (
+              <button key={n} onClick={() => setGameNumber(n)}
+                style={{
+                  padding: '8px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  border: `1.5px solid ${gameNumber === n ? '#042C53' : '#ddd'}`,
+                  background: gameNumber === n ? '#042C53' : '#fff',
+                  color: gameNumber === n ? '#fff' : '#73726c',
+                }}>{n}</button>
             ))}
           </div>
+        </div>
 
-          {isPitcher && (
-            <>
-              <h4 className={styles.formSectionTitle}>Pitching</h4>
-              <div className={styles.statsGrid}>
-                {[
-                  { label: 'IP', value: ip, setter: setIp },
-                  { label: 'ER', value: er, setter: setEr },
-                  { label: 'K', value: kP, setter: setKP },
-                  { label: 'BB', value: bbP, setter: setBbP },
-                  { label: 'Peak Velo', value: peakVelo, setter: setPeakVelo },
-                ].map(({ label, value, setter }) => (
-                  <div key={label} className={styles.statInputGroup}>
-                    <label className={styles.statLabel}>{label}</label>
-                    <input type="number" min="0" className={styles.statInput}
-                      value={value} onChange={e => setter(e.target.value)} placeholder="0" />
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          <div className={styles.formActions}>
-            <button className={styles.cancelBtn} onClick={() => { clearForm(); setShowForm(false) }}>Cancel</button>
-            <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving...' : editingGame ? 'Update Game' : 'Save Game'}
-            </button>
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5 }}>Result</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {['W', 'L', 'T'].map(r => (
+              <button key={r} onClick={() => setResult(r)}
+                style={{
+                  padding: '8px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  border: `1.5px solid ${result === r ? '#185FA5' : '#ddd'}`,
+                  background: result === r ? '#185FA5' : '#fff',
+                  color: result === r ? '#fff' : '#73726c',
+                }}>{r}</button>
+            ))}
           </div>
         </div>
-      )}
 
-      {loading ? (
-        <div className={styles.loading}>Loading stats...</div>
-      ) : games.length === 0 ? (
-        <div className={styles.empty}>
-          <div className={styles.emptyIcon}>📋</div>
-          <div className={styles.emptyTitle}>No games logged yet</div>
-          <p className={styles.emptyText}>Start logging your game stats to track your progress and show coaches your performance.</p>
+        {/* File upload */}
+        <div
+          onClick={() => fileRef.current?.click()}
+          style={{
+            border: '2px dashed #ddd', borderRadius: 12, padding: 32, textAlign: 'center',
+            cursor: 'pointer', marginBottom: 20, background: fileName ? '#F0F7FF' : '#fafafa',
+            transition: 'all 0.15s',
+          }}
+        >
+          <input ref={fileRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFile} />
+          <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
+          {fileName ? (
+            <>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#185FA5' }}>{fileName}</div>
+              <div style={{ fontSize: 12, color: '#73726c', marginTop: 4 }}>{parsedRows.length} players found — click to change file</div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#042C53' }}>Click to upload GameChanger CSV</div>
+              <div style={{ fontSize: 12, color: '#73726c', marginTop: 4 }}>Export single-game stats from GameChanger → Season Stats → filter to 1 game</div>
+            </>
+          )}
         </div>
-      ) : (
-        Object.entries(seasons).map(([seasonKey, seasonGames]) => {
-          const totals = seasonGames.reduce((acc, g) => ({
-            ab: acc.ab + (g.ab ?? 0), h: acc.h + (g.h ?? 0),
-            hr: acc.hr + (g.hr ?? 0), rbi: acc.rbi + (g.rbi ?? 0),
-            bb: acc.bb + (g.bb ?? 0), so: acc.so + (g.so ?? 0),
-            sb: acc.sb + (g.sb ?? 0), doubles: acc.doubles + (g.doubles ?? 0),
-          }), { ab: 0, h: 0, hr: 0, rbi: 0, bb: 0, so: 0, sb: 0, doubles: 0 })
 
-          const avg = totals.ab > 0 ? (totals.h / totals.ab).toFixed(3).replace('0.', '.') : '.000'
-          const obp = totals.ab > 0 ? ((totals.h + totals.bb) / (totals.ab + totals.bb)).toFixed(3).replace('0.', '.') : '.000'
-          const slg = totals.ab > 0 ? ((totals.h + totals.doubles + totals.doubles + (totals.hr * 3)) / totals.ab).toFixed(3).replace('0.', '.') : '.000'
-
-          return (
-            <div key={seasonKey} className={styles.seasonCard}>
-              <div className={styles.seasonCardHeader}>
-                <h3 className={styles.seasonCardTitle}>{seasonKey}</h3>
-                <span className={styles.seasonCardGames}>{seasonGames.length} games</span>
-              </div>
-
-              {/* Season totals */}
-              <div className={styles.seasonTotals}>
-                {[
-                  { label: 'AVG', value: avg },
-                  { label: 'OBP', value: obp },
-                  { label: 'SLG', value: slg },
-                  { label: 'AB', value: totals.ab },
-                  { label: 'H', value: totals.h },
-                  { label: 'HR', value: totals.hr },
-                  { label: 'RBI', value: totals.rbi },
-                  { label: 'BB', value: totals.bb },
-                  { label: 'SO', value: totals.so },
-                  { label: 'SB', value: totals.sb },
-                ].map(({ label, value }) => (
-                  <div key={label} className={styles.totalStat}>
-                    <div className={styles.totalStatVal}>{value}</div>
-                    <div className={styles.totalStatLbl}>{label}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Individual games */}
-              <table className={styles.gamesTable}>
+        {/* Preview */}
+        {parsedRows.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 8 }}>
+              Preview — {parsedRows.length} players
+            </div>
+            <div style={{ background: '#f8f8f7', borderRadius: 10, overflow: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, whiteSpace: 'nowrap' }}>
                 <thead>
-                  <tr>
-                    <th>Date</th><th>Opponent</th><th>Result</th>
-                    <th>AB</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>SO</th><th>SB</th>
-                    <th></th>
+                  <tr style={{ background: '#f0f0ee' }}>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#73726c', textTransform: 'uppercase' }}>Player</th>
+                    {['AB', 'H', '2B', '3B', 'HR', 'RBI', 'R', 'BB', 'SO', 'SB'].map(h => (
+                      <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#73726c', textTransform: 'uppercase' }}>{h}</th>
+                    ))}
+                    <th style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#7A5200', textTransform: 'uppercase', borderLeft: '2px solid #e5e5e5' }}>IP</th>
+                    {['ER', 'K', 'BB', 'ERA', 'WHIP', 'PC'].map(h => (
+                      <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#7A5200', textTransform: 'uppercase' }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {seasonGames.map(g => (
-                    <tr key={g.id}>
-                      <td>{new Date(g.game_date).toLocaleDateString()}</td>
-                      <td>{g.opponent ?? '—'}</td>
-                      <td><span className={`${styles.resultBadge} ${g.result === 'W' ? styles.resultW : g.result === 'L' ? styles.resultL : styles.resultT}`}>{g.result}</span></td>
-                      <td>{g.ab ?? 0}</td><td>{g.h ?? 0}</td><td>{g.hr ?? 0}</td>
-                      <td>{g.rbi ?? 0}</td><td>{g.bb ?? 0}</td><td>{g.so ?? 0}</td><td>{g.sb ?? 0}</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button className={styles.editGameBtn} onClick={() => startEdit(g)}>✏️</button>
-                          <button className={styles.deleteGameBtn} onClick={() => handleDelete(g.id)}
-                            disabled={deleting === g.id}>{deleting === g.id ? '...' : '🗑'}</button>
-                        </div>
-                      </td>
+                  {parsedRows.map((row, i) => (
+                    <tr key={i} style={{ borderTop: '1px solid #e5e5e5' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 500 }}>{row['First']} {row['Last']}</td>
+                      {['AB', 'H', '2B', '3B', 'HR', 'RBI', 'R', 'BB', 'SO', 'SB'].map(col => (
+                        <td key={col} style={{ padding: '8px 10px', color: '#73726c' }}>{row[col] || '0'}</td>
+                      ))}
+                      <td style={{ padding: '8px 10px', color: '#7A5200', borderLeft: '2px solid #e5e5e5', fontWeight: parseFloat(row['IP']) > 0 ? 600 : 400 }}>{row['IP'] || '0'}</td>
+                      <td style={{ padding: '8px 10px', color: '#7A5200' }}>{row['ER'] || '0'}</td>
+                      <td style={{ padding: '8px 10px', color: '#7A5200' }}>{row['SO_P'] || '0'}</td>
+                      <td style={{ padding: '8px 10px', color: '#7A5200' }}>{row['BB_P'] || '0'}</td>
+                      <td style={{ padding: '8px 10px', color: '#7A5200' }}>{row['ERA'] || '—'}</td>
+                      <td style={{ padding: '8px 10px', color: '#7A5200' }}>{row['WHIP'] || '—'}</td>
+                      <td style={{ padding: '8px 10px', color: '#7A5200' }}>{row['PITCH_COUNT'] || '0'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )
-        })
+          </div>
+        )}
+
+        <button
+          onClick={handleImport}
+          disabled={importing || parsedRows.length === 0 || !opponent.trim()}
+          style={{
+            width: '100%', padding: 14,
+            background: (importing || parsedRows.length === 0 || !opponent.trim()) ? '#73726c' : '#185FA5',
+            color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700,
+            cursor: (importing || parsedRows.length === 0 || !opponent.trim()) ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {importing ? 'Importing...' : `Import Stats for ${parsedRows.length} Players`}
+        </button>
+      </div>
+
+      {/* Import results */}
+      {importResults && (
+        <div style={{ background: '#fff', borderRadius: 14, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#042C53', margin: '0 0 16px' }}>Import Results</h3>
+
+          {importResults.matched.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#27500A', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 }}>
+                ✅ Imported ({importResults.matched.length})
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {importResults.matched.map((name: string) => (
+                  <span key={name} style={{ background: '#E8F5E9', color: '#27500A', padding: '3px 10px', borderRadius: 10, fontSize: 12 }}>{name}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {importResults.duplicates.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#7A5200', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 }}>
+                ⚠️ Already imported ({importResults.duplicates.length})
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {importResults.duplicates.map((name: string) => (
+                  <span key={name} style={{ background: '#FFF3E0', color: '#7A5200', padding: '3px 10px', borderRadius: 10, fontSize: 12 }}>{name}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {importResults.playerLogged?.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#6A1B9A', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 }}>
+                🔄 Overwritten — coach import replaced player entry ({importResults.playerLogged.length})
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {importResults.playerLogged.map((name: string) => (
+                  <span key={name} style={{ background: '#F3E5F5', color: '#6A1B9A', padding: '3px 10px', borderRadius: 10, fontSize: 12 }}>{name}</span>
+                ))}
+              </div>
+              <p style={{ fontSize: 12, color: '#73726c', margin: '8px 0 0', lineHeight: 1.5 }}>
+                These players had manually logged this game. The coach import replaced their entry with verified stats.
+              </p>
+            </div>
+          )}
+
+          {importResults.unmatched.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#B71C1C', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 }}>
+                ❌ Not found in system ({importResults.unmatched.length})
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {importResults.unmatched.map((name: string) => (
+                  <span key={name} style={{ background: '#FFEBEE', color: '#B71C1C', padding: '3px 10px', borderRadius: 10, fontSize: 12 }}>{name}</span>
+                ))}
+              </div>
+              <p style={{ fontSize: 12, color: '#73726c', margin: '8px 0 0', lineHeight: 1.5 }}>
+                These players don't have Diamond IQ accounts yet. Once they sign up, you can re-import this game or ask them to log it manually.
+              </p>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
 }
 
-// ── Verified Tab ──────────────────────────────────────────────────────────────
-function VerifiedTab({ profile }: any) {
-  const [sessions, setSessions] = useState<any[]>([])
+// ── Games Tab ─────────────────────────────────────────────────────────────────
+function GamesTab({ user, flash }: any) {
+  const [games, setGames] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingKey, setDeletingKey] = useState<string | null>(null)
+  const [confirmKey, setConfirmKey] = useState<string | null>(null)
+  const [editingSeasonKey, setEditingSeasonKey] = useState<string | null>(null)
+  const [editingSeasonValue, setEditingSeasonValue] = useState<string>('')
 
   useEffect(() => {
-    if (!profile) return
-    supabase.from('verified_measurables')
-      .select('*, facility:facility_profiles(name)')
-      .eq('player_id', profile.id)
-      .order('verified_at', { ascending: false })
-      .then(({ data }) => { setSessions(data ?? []); setLoading(false) })
-  }, [profile])
+    loadGames()
+  }, [user])
 
-  if (loading) return <div className={styles.loading}>Loading sessions...</div>
+  async function loadGames() {
+    const { data } = await supabase
+      .from('game_stats')
+      .select('*, player:player_profiles(id, user:users(name))')
+      .eq('verified_by_coach', user.id)
+      .eq('source', 'gamechanger')
+      .order('game_date', { ascending: false })
+    setGames(data ?? [])
+    setLoading(false)
+  }
 
-  if (sessions.length === 0) return (
-    <div className={styles.tabContent}>
-      <div className={styles.empty}>
-        <div className={styles.emptyIcon}>✅</div>
-        <div className={styles.emptyTitle}>No verified sessions yet</div>
-        <p className={styles.emptyText}>Visit a Diamond IQ verified facility to get your metrics verified.</p>
-        <Link href="/facilities" className={styles.findFacilityBtn}>Find a Facility →</Link>
-      </div>
+  async function deleteGame(gameDate: string, opponent: string, gameNumber: number, key: string) {
+    setDeletingKey(key)
+    const { error } = await supabase
+      .from('game_stats')
+      .delete()
+      .eq('verified_by_coach', user.id)
+      .eq('game_date', gameDate)
+      .eq('opponent', opponent)
+      .eq('game_number', gameNumber)
+      .eq('source', 'gamechanger')
+    if (!error) {
+      setGames(prev => prev.filter(g => !(g.game_date === gameDate && g.opponent === opponent && (g.game_number ?? 1) === gameNumber)))
+    }
+    setDeletingKey(null)
+    setConfirmKey(null)
+  }
+
+  async function updateSeasonType(gameDate: string, opponent: string, gameNumber: number, newSeasonType: string, key: string) {
+    const { error } = await supabase
+      .from('game_stats')
+      .update({ season_type: newSeasonType })
+      .eq('verified_by_coach', user.id)
+      .eq('game_date', gameDate)
+      .eq('opponent', opponent)
+      .eq('game_number', gameNumber)
+    if (!error) {
+      setGames(prev => prev.map(g =>
+        (g.game_date === gameDate && g.opponent === opponent && (g.game_number ?? 1) === gameNumber)
+          ? { ...g, season_type: newSeasonType }
+          : g
+      ))
+      flash(`✅ Season type updated`)
+    }
+    setEditingSeasonKey(null)
+  }
+
+  const seasonTypeLabels: Record<string, string> = {
+    hs_varsity: 'HS Varsity', hs_jv: 'HS JV', travel: 'Travel Ball',
+    showcase: 'Showcase', college: 'College'
+  }
+
+  // Group by game (date + opponent + game_number)
+  const gameGroups: Record<string, any[]> = {}
+  games.forEach(g => {
+    const gn = g.game_number ?? 1
+    const key = `${g.game_date}_${g.opponent}_g${gn}`
+    if (!gameGroups[key]) gameGroups[key] = []
+    gameGroups[key].push(g)
+  })
+
+  if (loading) return <div style={{ textAlign: 'center', color: '#73726c', padding: 40 }}>Loading...</div>
+
+  if (Object.keys(gameGroups).length === 0) return (
+    <div style={{ background: '#fff', borderRadius: 14, padding: 48, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: '#042C53', marginBottom: 6 }}>No games uploaded yet</div>
+      <p style={{ fontSize: 13, color: '#73726c', margin: 0 }}>Upload your first GameChanger export to get started.</p>
     </div>
   )
 
   return (
-    <div className={styles.tabContent}>
-      <h2 className={styles.tabTitle}>Verified Sessions</h2>
-      {sessions.map(s => (
-        <div key={s.id} className={styles.sessionCard}>
-          <div className={styles.sessionCardHeader}>
-            <div>
-              <div className={styles.sessionCardFacility}>{s.facility?.name ?? 'Facility'}</div>
-              <div className={styles.sessionCardMeta}>
-                {new Date(s.verified_at).toLocaleDateString()}
-                {s.equipment && ` · ${s.equipment}`}
-                {s.session_type && ` · ${s.session_type === 'tee' ? 'Off Tee' : s.session_type === 'front_toss' ? 'Front Toss' : s.session_type === 'machine' ? 'Machine' : 'Live Pitching'}`}
-                {s.avg_pitch_speed && ` @ ${s.avg_pitch_speed} mph`}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {Object.entries(gameGroups).map(([key, players]) => {
+        const game = players[0]
+        const isDeleting = deletingKey === key
+        const isConfirming = confirmKey === key
+        return (
+          <div key={key} style={{ background: '#fff', borderRadius: 14, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#042C53' }}>
+                  vs {game.opponent}
+                  {(game.game_number ?? 1) > 1 && (
+                    <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, background: '#E6F1FB', color: '#185FA5', padding: '2px 8px', borderRadius: 6 }}>
+                      Game {game.game_number}
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: '#73726c', marginTop: 2 }}>
+                  {new Date(game.game_date + 'T12:00:00').toLocaleDateString()} · {players.length} players
+                </div>
+                <div style={{ marginTop: 6 }}>
+                  {editingSeasonKey === key ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <select
+                        value={editingSeasonValue}
+                        onChange={e => setEditingSeasonValue(e.target.value)}
+                        style={{ fontSize: 12, padding: '3px 8px', borderRadius: 6, border: '1px solid #185FA5' }}
+                      >
+                        <option value="hs_varsity">HS Varsity</option>
+                        <option value="hs_jv">HS JV</option>
+                        <option value="travel">Travel Ball</option>
+                        <option value="showcase">Showcase</option>
+                        <option value="college">College</option>
+                      </select>
+                      <button
+                        onClick={() => updateSeasonType(game.game_date, game.opponent, game.game_number ?? 1, editingSeasonValue, key)}
+                        style={{ fontSize: 11, padding: '3px 10px', background: '#185FA5', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}
+                      >Save</button>
+                      <button
+                        onClick={() => setEditingSeasonKey(null)}
+                        style={{ fontSize: 11, padding: '3px 8px', background: '#f0f0f0', color: '#73726c', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                      >Cancel</button>
+                    </div>
+                  ) : (
+                    <span
+                      onClick={() => { setEditingSeasonKey(key); setEditingSeasonValue(game.season_type) }}
+                      style={{ fontSize: 11, color: '#185FA5', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      {seasonTypeLabels[game.season_type] ?? game.season_type} ✏️
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
-          <div className={styles.metricsGrid}>
-            {[
-              ['exit_velo', 'Max EV', 'mph'], ['avg_exit_velo', 'Avg EV', 'mph'],
-              ['bat_speed', 'Bat Speed', 'mph'], ['launch_angle', 'LA', '°'],
-              ['hard_hit_avg', 'Hard Hit', '%'], ['fb_velo', 'FB Velo', 'mph'],
-              ['arm_velo', 'Arm Velo', 'mph'], ['sixty_time', '60 Time', 's'],
-            ].filter(([key]) => s[key] != null).map(([key, label, unit]) => (
-              <div key={key} className={styles.metricCard}>
-                <div className={styles.metricVal}>{s[key]}{unit}</div>
-                <div className={styles.metricLbl}>{label}</div>
-              </div>
-            ))}
-          </div>
-          {s.ai_report && (
-            <div className={styles.aiBox}>
-              <div className={styles.aiBoxTitle}>🏟 Facility Analysis</div>
-              {(() => {
-                const normalized = s.ai_report
-                  .replace(/^#{1,3}\s*STRENGTHS\s*/im, 'STRENGTHS:')
-                  .replace(/^#{1,3}\s*OPPORTUNITIES\s*/im, 'OPPORTUNITIES:')
-                  .replace(/^#{1,3}\s*RECOMMENDED DRILLS\s*/im, 'RECOMMENDED DRILLS:')
-                const strengthsMatch = normalized.match(/STRENGTHS:([\s\S]*?)(?=OPPORTUNITIES:|$)/i)
-                const opportunitiesMatch = normalized.match(/OPPORTUNITIES:([\s\S]*?)(?=RECOMMENDED DRILLS:|$)/i)
-                const drillsMatch = normalized.match(/RECOMMENDED DRILLS:([\s\S]*?)$/i)
-
-                if (!strengthsMatch) return <p className={styles.aiBoxText}>{s.ai_report}</p>
-
-                return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {isConfirming ? (
                   <>
-                    {strengthsMatch && <div style={{ marginBottom: 10 }}><div style={{ fontSize: 11, fontWeight: 700, color: '#27500A', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 4 }}>✅ Strengths</div><p className={styles.aiBoxText}>{strengthsMatch[1].replace(/\*\*/g, '').trim()}</p></div>}
-                    {opportunitiesMatch && <div style={{ marginBottom: 10 }}><div style={{ fontSize: 11, fontWeight: 700, color: '#7A5200', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 4 }}>🎯 Opportunities</div><p className={styles.aiBoxText}>{opportunitiesMatch[1].replace(/\*\*/g, '').trim()}</p></div>}
-                    {drillsMatch && <div><div style={{ fontSize: 11, fontWeight: 700, color: '#185FA5', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 4 }}>🏋️ Drills</div><p className={styles.aiBoxText}>{drillsMatch[1].replace(/\*\*/g, '').trim()}</p></div>}
+                    <span style={{ fontSize: 12, color: '#B71C1C', fontWeight: 500 }}>Delete all {players.length} records?</span>
+                    <button
+                      onClick={() => deleteGame(game.game_date, game.opponent, game.game_number ?? 1, key)}
+                      disabled={isDeleting}
+                      style={{ background: '#B71C1C', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                    >{isDeleting ? 'Deleting...' : 'Yes, delete'}</button>
+                    <button
+                      onClick={() => setConfirmKey(null)}
+                      style={{ background: '#f0f0f0', color: '#73726c', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, cursor: 'pointer' }}
+                    >Cancel</button>
                   </>
-                )
-              })()}
+                ) : (
+                  <>
+                    <span style={{
+                      padding: '4px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                      background: game.result === 'W' ? '#E8F5E9' : game.result === 'L' ? '#FFEBEE' : '#FFF3E0',
+                      color: game.result === 'W' ? '#27500A' : game.result === 'L' ? '#B71C1C' : '#7A5200',
+                    }}>{game.result}</span>
+                    <button
+                      onClick={() => setConfirmKey(key)}
+                      style={{ background: 'none', border: '1px solid #e5e5e5', borderRadius: 6, padding: '5px 10px', fontSize: 12, color: '#B71C1C', cursor: 'pointer' }}
+                    >🗑 Delete</button>
+                  </>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      ))}
+
+            {/* Batting Table */}
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: '#f8f8f7' }}>
+                  {['Player', 'AB', 'H', 'HR', 'RBI', 'R', 'BB', 'K', 'SB'].map(h => (
+                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#73726c', textTransform: 'uppercase' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {players.map(p => (
+                  <tr key={p.id} style={{ borderTop: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '8px 10px', fontWeight: 500 }}>{p.player?.user?.name ?? '—'}</td>
+                    <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.ab}</td>
+                    <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.h}</td>
+                    <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.hr}</td>
+                    <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.rbi}</td>
+                    <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.runs}</td>
+                    <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.bb}</td>
+                    <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.k}</td>
+                    <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.sb}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Pitching Table — only shown if any player has IP > 0 */}
+            {players.some(p => p.ip > 0) && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#042C53', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
+                  ⚾ Pitching
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: '#f8f8f7' }}>
+                      {['Pitcher', 'IP', 'R', 'ER', 'ERA', 'WHIP', 'SO', 'BB'].map(h => (
+                        <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#73726c', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {players.filter(p => p.ip > 0).map(p => (
+                      <tr key={`pitch_${p.id}`} style={{ borderTop: '1px solid #f0f0f0' }}>
+                        <td style={{ padding: '8px 10px', fontWeight: 500 }}>{p.player?.user?.name ?? '—'}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.ip}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.runs ?? '—'}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.er ?? '—'}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.era != null ? Number(p.era).toFixed(2) : '—'}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.whip != null ? Number(p.whip).toFixed(2) : '—'}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.k_p ?? '—'}</td>
+                        <td style={{ padding: '8px 10px', color: '#73726c' }}>{p.bb_p ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
 
-// ── Profile Tab ───────────────────────────────────────────────────────────────
-function ProfileTab({ user, profile, flash, onSave }: any) {
-  const [name, setName] = useState(user?.name ?? '')
-  const [bio, setBio] = useState(profile?.bio ?? '')
-  const [gradYear, setGradYear] = useState(profile?.grad_year?.toString() ?? '')
-  const [positions, setPositions] = useState<string[]>(profile?.positions ?? [])
-  const [state, setState] = useState(profile?.state ?? '')
-  const [bats, setBats] = useState(profile?.bats ?? '')
-  const [throws, setThrows] = useState(profile?.throws ?? '')
-  const [heightIn, setHeightIn] = useState(profile?.height_in?.toString() ?? '')
-  const [weightLbs, setWeightLbs] = useState(profile?.weight_lbs?.toString() ?? '')
-  const [gpa, setGpa] = useState(profile?.gpa?.toString() ?? '')
-  const [sat, setSat] = useState(profile?.sat?.toString() ?? '')
-  const [act, setAct] = useState(profile?.act?.toString() ?? '')
-  const [saving, setSaving] = useState(false)
-  const [photoUrl, setPhotoUrl] = useState(profile?.photo_url ?? '')
-  const [uploadingPhoto, setUploadingPhoto] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+// ── Roster Tab ────────────────────────────────────────────────────────────────
+function RosterTab({ user }: any) {
+  const [players, setPlayers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searching, setSearching] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteName, setInviteName] = useState('')
+  const [inviting, setInviting] = useState(false)
+  const [showInvite, setShowInvite] = useState(false)
+  const [msg, setMsg] = useState('')
 
-  function togglePosition(pos: string) {
-    setPositions(prev => prev.includes(pos) ? prev.filter(p => p !== pos) : [...prev, pos])
+  useEffect(() => { loadRoster() }, [user])
+
+  async function loadRoster() {
+    const { data: coachData } = await supabase
+      .from('coach_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+    if (!coachData) { setLoading(false); return }
+
+    const { data } = await supabase
+      .from('coach_players')
+      .select('player:player_profiles(id, public_slug, user:users(name, email), grad_year, positions, diq_score, parent_token)')
+      .eq('coach_id', coachData.id)
+    setPlayers((data ?? []).map((d: any) => d.player).filter(Boolean))
+    setLoading(false)
   }
 
-  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.type.startsWith('image/')) { flash('Please select an image file', true); return }
-    if (file.size > 5 * 1024 * 1024) { flash('Image must be under 5MB', true); return }
+  async function searchPlayers(q: string) {
+    setSearch(q)
+    if (q.length < 2) { setSearchResults([]); return }
+    setSearching(true)
+    const { data } = await supabase
+      .from('player_profiles')
+      .select('id, public_slug, grad_year, positions, diq_score, user:users(name, email)')
+      .ilike('users.name', `%${q}%`)
+      .limit(8)
+    setSearchResults((data ?? []).filter((p: any) => p.user?.name))
+    setSearching(false)
+  }
 
-    setUploadingPhoto(true)
+  async function addToRoster(player: any) {
+    const { data: coachData } = await supabase
+      .from('coach_profiles').select('id').eq('user_id', user.id).single()
+    if (!coachData) return
+    await supabase.from('coach_players').upsert({
+      coach_id: coachData.id,
+      player_id: player.id,
+    }, { onConflict: 'coach_id,player_id', ignoreDuplicates: true })
+    setSearch('')
+    setSearchResults([])
+    setMsg(`✅ ${player.user?.name} added to roster`)
+    setTimeout(() => setMsg(''), 3000)
+    await loadRoster()
+  }
+
+  async function handleInvite() {
+    if (!inviteEmail.trim() || !inviteName.trim()) {
+      setMsg('Please enter name and email')
+      return
+    }
+    setInviting(true)
     try {
-      const ext = file.name.split('.').pop()
-      const path = `players/${profile.id}/avatar.${ext}`
-      const { error: uploadError } = await supabase.storage
-        .from('photos')
-        .upload(path, file, { upsert: true })
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(path)
-      setPhotoUrl(publicUrl)
-
-      await supabase.from('player_profiles').update({ photo_url: publicUrl }).eq('id', profile.id)
-      flash('✅ Photo updated')
-      onSave()
-    } catch (e: unknown) {
-      flash(e instanceof Error ? e.message : 'Upload failed', true)
+      // Send invite email via Supabase
+      const { error } = await supabase.functions.invoke('send-player-invite', {
+        body: { email: inviteEmail.trim(), name: inviteName.trim(), coach_name: user.name }
+      })
+      if (error) throw error
+      setMsg(`✅ Invite sent to ${inviteEmail}`)
+      setInviteEmail('')
+      setInviteName('')
+      setShowInvite(false)
+      setTimeout(() => setMsg(''), 4000)
+    } catch {
+      setMsg('Failed to send invite — please try again')
     } finally {
-      setUploadingPhoto(false)
+      setInviting(false)
     }
   }
 
-  async function handleSave() {
-    setSaving(true)
-    try {
-      await supabase.from('users').update({ name }).eq('id', user.id)
-      await supabase.from('player_profiles').update({
-        bio, grad_year: parseInt(gradYear) || null,
-        positions, state, bats, throws,
-        height_in: parseInt(heightIn) || null,
-        weight_lbs: parseInt(weightLbs) || null,
-        gpa: parseFloat(gpa) || null,
-        sat: parseInt(sat) || null,
-        act: parseInt(act) || null,
-      }).eq('id', profile.id)
-      flash('✅ Profile saved')
-      onSave()
-    } catch (e: unknown) {
-      flash(e instanceof Error ? e.message : 'Failed to save', true)
-    } finally {
-      setSaving(false)
-    }
+  async function removeFromRoster(playerId: string) {
+    const { data: coachData } = await supabase
+      .from('coach_profiles').select('id').eq('user_id', user.id).single()
+    if (!coachData) return
+    await supabase.from('coach_players')
+      .delete()
+      .eq('coach_id', coachData.id)
+      .eq('player_id', playerId)
+    await loadRoster()
   }
+
+  if (loading) return <div style={{ textAlign: 'center', color: '#73726c', padding: 40 }}>Loading...</div>
 
   return (
-    <div className={styles.tabContent}>
-      <div className={styles.tabHeader}>
-        <h2 className={styles.tabTitle}>Edit Profile</h2>
-      </div>
+    <div>
+      {msg && <div style={{ background: msg.startsWith('✅') ? '#E8F5E9' : '#FFEBEE', color: msg.startsWith('✅') ? '#27500A' : '#B71C1C', padding: '10px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13, fontWeight: 600 }}>{msg}</div>}
 
-      <div className={styles.formCard}>
-        {/* Photo upload */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 24 }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: '50%',
-            background: '#E6F1FB', overflow: 'hidden',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            {photoUrl
-              ? <img src={photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <span style={{ fontSize: 28, fontWeight: 700, color: '#185FA5' }}>{(user?.name ?? '?').charAt(0)}</span>
-            }
-          </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#042C53', marginBottom: 4 }}>Profile Photo</div>
-            <div style={{ fontSize: 12, color: '#73726c', marginBottom: 8 }}>JPG or PNG, max 5MB</div>
-            <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
-              style={{ padding: '6px 14px', background: '#185FA5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-            >
-              {uploadingPhoto ? 'Uploading...' : photoUrl ? 'Change Photo' : 'Upload Photo'}
-            </button>
-          </div>
-        </div>
-
-        <h3 className={styles.formSectionTitle}>Basic Info</h3>
-        <div className={styles.formGrid2}>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Full Name</label>
-            <input className={styles.input} value={name} onChange={e => setName(e.target.value)} />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Grad Year</label>
-            <input className={styles.input} value={gradYear} onChange={e => setGradYear(e.target.value)} placeholder="2026" type="number" />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>State</label>
-            <input className={styles.input} value={state} onChange={e => setState(e.target.value)} placeholder="NC" />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Bats / Throws</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <select className={styles.select} value={bats} onChange={e => setBats(e.target.value)}>
-                <option value="">Bats</option>
-                {['R','L','S'].map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-              <select className={styles.select} value={throws} onChange={e => setThrows(e.target.value)}>
-                <option value="">Throws</option>
-                {['R','L'].map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Height (inches)</label>
-            <input className={styles.input} value={heightIn} onChange={e => setHeightIn(e.target.value)} placeholder="72" type="number" />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Weight (lbs)</label>
-            <input className={styles.input} value={weightLbs} onChange={e => setWeightLbs(e.target.value)} placeholder="185" type="number" />
-          </div>
-        </div>
-
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Positions</label>
-          <div className={styles.positionGrid}>
-            {POSITIONS.map(pos => (
-              <button key={pos}
-                className={`${styles.posBtn} ${positions.includes(pos) ? styles.posBtnActive : ''}`}
-                onClick={() => togglePosition(pos)}
-              >{pos}</button>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Bio</label>
-          <textarea className={styles.textarea} value={bio} onChange={e => setBio(e.target.value)}
-            placeholder="Tell coaches and scouts about yourself..." rows={4} />
-        </div>
-
-        <h3 className={styles.formSectionTitle}>Academics</h3>
-        <div className={styles.formGrid3}>
-          {[
-            { label: 'GPA', value: gpa, setter: setGpa, placeholder: '3.8' },
-            { label: 'SAT', value: sat, setter: setSat, placeholder: '1200' },
-            { label: 'ACT', value: act, setter: setAct, placeholder: '26' },
-          ].map(({ label, value, setter, placeholder }) => (
-            <div key={label} className={styles.formGroup}>
-              <label className={styles.label}>{label}</label>
-              <input className={styles.input} value={value} onChange={e => setter(e.target.value)} placeholder={placeholder} />
-            </div>
-          ))}
-        </div>
-
-        <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Profile'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ── Settings Tab ──────────────────────────────────────────────────────────────
-function SettingsTab({ user, profile, flash }: any) {
-  const [hittraxVisible, setHittraxVisible] = useState(profile?.hittrax_visible ?? true)
-  const [savingHittrax, setSavingHittrax] = useState(false)
-  const [parentEmail, setParentEmail] = useState(profile?.parent_email ?? '')
-  const [savingParent, setSavingParent] = useState(false)
-  const [parentLink, setParentLink] = useState(
-    profile?.parent_token ? `https://www.iqbio.io/parent/${profile.parent_token}` : ''
-  )
-  const [newEmail, setNewEmail] = useState('')
-  const [savingEmail, setSavingEmail] = useState(false)
-  const [newPassword, setNewPassword] = useState('')
-  const [savingPw, setSavingPw] = useState(false)
-
-  async function handleHittraxToggle() {
-    setSavingHittrax(true)
-    const newVal = !hittraxVisible
-    setHittraxVisible(newVal)
-    await supabase.from('player_profiles').update({ hittrax_visible: newVal }).eq('id', profile.id)
-    setSavingHittrax(false)
-    flash(`✅ Verified metrics ${newVal ? 'visible' : 'hidden'}`)
-  }
-
-  async function handleSaveParent() {
-    if (!parentEmail.includes('@')) { flash('Invalid email', true); return }
-    setSavingParent(true)
-    await supabase.from('player_profiles').update({ parent_email: parentEmail }).eq('id', profile.id)
-    setParentLink(`https://www.iqbio.io/parent/${profile.parent_token}`)
-    setSavingParent(false)
-    flash('✅ Parent email saved')
-  }
-
-  async function handleEmailChange() {
-    if (!newEmail.trim() || !newEmail.includes('@')) { flash('Enter a valid email address', true); return }
-    setSavingEmail(true)
-    const { error } = await supabase.auth.updateUser({ email: newEmail.trim().toLowerCase() })
-    setSavingEmail(false)
-    if (error) flash(error.message, true)
-    else {
-      // Update public.users too
-      await supabase.from('users').update({ email: newEmail.trim().toLowerCase() }).eq('id', user.id)
-      flash('✅ Confirmation sent to ' + newEmail + '. Check your inbox.')
-      setNewEmail('')
-    }
-  }
-
-  async function handlePasswordChange() {
-    if (newPassword.length < 8) { flash('Password must be at least 8 characters', true); return }
-    setSavingPw(true)
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-    setSavingPw(false)
-    if (error) flash(error.message, true)
-    else { flash('✅ Password updated'); setNewPassword('') }
-  }
-
-  return (
-    <div className={styles.tabContent}>
-      <h2 className={styles.tabTitle}>Settings</h2>
-
-      {/* HitTrax visibility */}
-      <div className={styles.settingsCard}>
-        <div className={styles.settingsRow}>
-          <div>
-            <div className={styles.settingsLabel}>Show Verified Metrics</div>
-            <div className={styles.settingsSub}>Allow coaches and scouts to see your facility-verified data on your public profile.</div>
-          </div>
-          <button
-            className={`${styles.toggle} ${hittraxVisible ? styles.toggleOn : styles.toggleOff}`}
-            onClick={handleHittraxToggle}
-            disabled={savingHittrax}
-          >
-            {hittraxVisible ? 'ON' : 'OFF'}
+      {/* Search / Add Player */}
+      <div style={{ background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 16 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#042C53', marginBottom: 12 }}>Add Player to Roster</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <input
+            value={search}
+            onChange={e => searchPlayers(e.target.value)}
+            placeholder="Search by player name..."
+            style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 13, outline: 'none' }}
+          />
+          <button onClick={() => setShowInvite(!showInvite)}
+            style={{ padding: '10px 16px', background: '#f0f0f0', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#042C53', cursor: 'pointer' }}>
+            📧 Invite
           </button>
         </div>
-      </div>
 
-      {/* Parent access */}
-      <div className={styles.settingsCard}>
-        <div className={styles.settingsLabel}>Parent Access</div>
-        <div className={styles.settingsSub} style={{ marginBottom: 10 }}>Give your parent a private link to view your profile and log game stats.</div>
-        <input className={styles.input} value={parentEmail} onChange={e => setParentEmail(e.target.value)}
-          placeholder="Parent email address" type="email" style={{ marginBottom: 8 }} />
-        <button className={styles.saveBtn} onClick={handleSaveParent} disabled={savingParent}>
-          {savingParent ? 'Saving...' : 'Save & Generate Link'}
-        </button>
-        {parentLink && (
-          <div className={styles.parentLinkBox}>
-            <div className={styles.parentLinkLabel}>Parent Link:</div>
-            <div className={styles.parentLinkUrl}>{parentLink}</div>
-            <button className={styles.copyBtn} onClick={() => { navigator.clipboard.writeText(parentLink); flash('✅ Link copied') }}>
-              Copy Link
-            </button>
+        {/* Search results */}
+        {searchResults.length > 0 && (
+          <div style={{ border: '1px solid #eee', borderRadius: 8, overflow: 'hidden' }}>
+            {searchResults.map(p => (
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #f0f0f0' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{p.user?.name}</div>
+                  <div style={{ fontSize: 11, color: '#73726c' }}>{(p.positions ?? []).join(', ')} · Class of {p.grad_year}</div>
+                </div>
+                <button onClick={() => addToRoster(p)}
+                  style={{ padding: '6px 14px', background: '#042C53', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  + Add
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Invite form */}
+        {showInvite && (
+          <div style={{ marginTop: 12, padding: 14, background: '#f8f8f7', borderRadius: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#042C53', marginBottom: 10 }}>Invite Player to Diamond IQ Baseball</div>
+            <input value={inviteName} onChange={e => setInviteName(e.target.value)}
+              placeholder="Player's full name"
+              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }} />
+            <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
+              type="email" placeholder="Player's email"
+              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 13, outline: 'none', marginBottom: 10, boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handleInvite} disabled={inviting}
+                style={{ padding: '9px 18px', background: '#042C53', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                {inviting ? 'Sending...' : 'Send Invite'}
+              </button>
+              <button onClick={() => setShowInvite(false)}
+                style={{ padding: '9px 14px', background: '#fff', border: '1px solid #ddd', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Email change */}
-      <div className={styles.settingsCard}>
-        <div className={styles.settingsLabel}>Change Email</div>
-        <div className={styles.settingsSub} style={{ marginBottom: 8 }}>
-          Current: <strong>{user?.email}</strong>
+      {/* Roster list */}
+      {players.length === 0 ? (
+        <div style={{ background: '#fff', borderRadius: 14, padding: 48, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#042C53', marginBottom: 6 }}>No roster yet</div>
+          <p style={{ fontSize: 13, color: '#73726c', margin: 0 }}>Search for players above or send invites to build your roster.</p>
         </div>
-        <input
-          className={styles.input}
-          type="email"
-          value={newEmail}
-          onChange={e => setNewEmail(e.target.value)}
-          placeholder="New email address"
-          style={{ marginBottom: 8 }}
-        />
-        <button className={styles.saveBtn} onClick={handleEmailChange} disabled={savingEmail}>
-          {savingEmail ? 'Sending...' : 'Change Email'}
-        </button>
-      </div>
+      ) : (
+        <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#f8f8f7' }}>
+                {['Player', 'Positions', 'Grad Year', 'DIQ Score', 'Profile', ''].map(h => (
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', borderBottom: '1px solid #e5e5e5' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {players.map((p: any) => (
+                <tr key={p.id} style={{ borderBottom: '1px solid #f4f3ef' }}>
+                  <td style={{ padding: '12px 16px', fontWeight: 600, color: '#042C53' }}>{p.user?.name ?? '—'}</td>
+                  <td style={{ padding: '12px 16px', color: '#73726c' }}>{(p.positions ?? []).join(', ') || '—'}</td>
+                  <td style={{ padding: '12px 16px', color: '#73726c' }}>{p.grad_year ?? '—'}</td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <span style={{ fontWeight: 700, color: '#042C53' }}>{(p.diq_score ?? 0).toFixed(1)}</span>
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    {p.public_slug ? (
+                      <Link href={`/player/${p.public_slug}`} target="_blank"
+                        style={{ color: '#185FA5', fontSize: 12, textDecoration: 'none', fontWeight: 500 }}>
+                        View →
+                      </Link>
+                    ) : <span style={{ color: '#B4B2A9', fontSize: 12 }}>No profile</span>}
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <button onClick={() => removeFromRoster(p.id)}
+                      style={{ background: 'none', border: 'none', color: '#B4B2A9', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
 
-      {/* Password */}
-      <div className={styles.settingsCard}>
-        <div className={styles.settingsLabel}>Change Password</div>
-        <input className={styles.input} type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
-          placeholder="New password (min 8 characters)" style={{ margin: '8px 0' }} />
-        <button className={styles.saveBtn} onClick={handlePasswordChange} disabled={savingPw}>
-          {savingPw ? 'Updating...' : 'Update Password'}
-        </button>
-      </div>
+// ── Highlights Tab ────────────────────────────────────────────────────────────
 
-      {/* Public profile link */}
-      {profile?.public_slug && (
-        <div className={styles.settingsCard}>
-          <div className={styles.settingsLabel}>Your Public Profile</div>
-          <div className={styles.settingsSub} style={{ marginBottom: 10 }}>Share this link with coaches, scouts, and parents.</div>
-          <div className={styles.parentLinkBox}>
-            <div className={styles.parentLinkUrl}>iqbio.io/player/{profile.public_slug}</div>
-            <button className={styles.copyBtn} onClick={() => { navigator.clipboard.writeText(`https://www.iqbio.io/player/${profile.public_slug}`); flash('✅ Link copied') }}>
-              Copy Link
-            </button>
+const VIDEO_CATEGORIES = ['Hitting', 'Pitching', 'Fielding', 'Catching', 'Speed', 'Game Highlight']
+
+function HighlightsTab({ user, flash }: any) {
+  const [roster, setRoster] = useState<any[]>([])
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null)
+  const [title, setTitle] = useState('')
+  const [category, setCategory] = useState('Game Highlight')
+  const [file, setFile] = useState<File | null>(null)
+  const [caption, setCaption] = useState('')
+  const [uploading, setUploading] = useState(false)
+
+  const [recentUploads, setRecentUploads] = useState<any[]>([])
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    loadRoster()
+    loadRecentUploads()
+  }, [user])
+
+  async function loadRoster() {
+    const { data: coachProfile } = await supabase
+      .from('coach_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+    if (!coachProfile) return
+
+    const { data } = await supabase
+      .from('coach_players')
+      .select('player:player_profiles(id, public_slug, grad_year, user:users(name))')
+      .eq('coach_id', coachProfile.id)
+    setRoster((data ?? []).map((d: any) => d.player).filter(Boolean))
+  }
+
+  async function loadRecentUploads() {
+    const { data: coachProfile } = await supabase
+      .from('coach_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+    if (!coachProfile) return
+
+    // Get recent videos uploaded for players on this coach's roster
+    const { data: players } = await supabase
+      .from('coach_players')
+      .select('player_id')
+      .eq('coach_id', coachProfile.id)
+
+    if (!players?.length) return
+    const playerIds = players.map((p: any) => p.player_id)
+
+    const { data } = await supabase
+      .from('player_videos')
+      .select('*, player:player_profiles(id, user:users(name))')
+      .in('player_id', playerIds)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    setRecentUploads(data ?? [])
+  }
+
+  async function handleUpload() {
+    if (!selectedPlayer || !file || !title.trim()) {
+      flash('Please select a player, enter a title, and choose a file', true)
+      return
+    }
+    setUploading(true)
+
+    try {
+      // Upload to NAS instead of Supabase storage
+      const ext = file.name.split('.').pop()
+      const filename = `${user.id}_highlight_${selectedPlayer.id}_${Date.now()}.${ext}`
+
+      const formData = new FormData()
+      formData.append('file', file, filename)
+
+      const nasResponse = await fetch('https://drive.42labs.org/upload/videos', {
+        method: 'POST',
+        headers: {
+          'x-api-key': 'diq.2026.cCangetin1999',
+          'x-user-id': user.id,
+        },
+        body: formData,
+      })
+
+      if (!nasResponse.ok) {
+        const err = await nasResponse.text()
+        throw new Error(`NAS upload failed: ${err}`)
+      }
+
+      const nasData = await nasResponse.json()
+      const publicUrl = nasData.url
+      const path = filename
+
+      // Insert into player_videos
+      const { error: dbError } = await supabase
+        .from('player_videos')
+        .insert({
+          player_id: selectedPlayer.id,
+          playback_url: publicUrl,
+          storage_path: path,
+          title: title.trim(),
+          category,
+          file_size_mb: Math.round(file.size / 1024 / 1024 * 10) / 10,
+          is_profile_video: false,
+        })
+
+      if (dbError) throw dbError
+
+      // Also post to the app feed
+      await supabase.from('posts').insert({
+        author_id: user.id,
+        tagged_player_id: selectedPlayer.id,
+        post_type: 'video',
+        content: caption.trim() || `🎬 ${title.trim()}`,
+        media_url: publicUrl,
+        visibility: 'everyone',
+      })
+
+      flash(`✅ Video uploaded for ${selectedPlayer.user?.name}`)
+      setTitle('')
+      setFile(null)
+      setSelectedPlayer(null)
+      if (fileRef.current) fileRef.current.value = ''
+      await loadRecentUploads()
+    } catch (e: any) {
+      flash(`Upload failed: ${e.message}`, true)
+    } finally {
+      setUploading(false)
+      }
+  }
+
+  return (
+    <div style={{ maxWidth: 700, margin: '0 auto' }}>
+      {/* Upload Form */}
+      <div style={{ background: '#fff', borderRadius: 14, padding: 28, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 24 }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#042C53', marginBottom: 20 }}>🎬 Upload Player Highlight</div>
+
+        {/* Player selector */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Player</label>
+          <select
+            value={selectedPlayer?.id ?? ''}
+            onChange={e => setSelectedPlayer(roster.find(p => p.id === e.target.value) ?? null)}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 14, color: selectedPlayer ? '#1a1a1a' : '#B4B2A9', outline: 'none' }}>
+            <option value="">Select a player...</option>
+            {roster.map(p => (
+              <option key={p.id} value={p.id}>{p.user?.name} {p.grad_year ? `'${String(p.grad_year).slice(2)}` : ''}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Title */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Title</label>
+          <input type="text" value={title} onChange={e => setTitle(e.target.value)}
+            placeholder="e.g. Jaden Beck - Home Run vs Red Clay"
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+
+        {/* Category */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Category</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {VIDEO_CATEGORIES.map(c => (
+              <button key={c} onClick={() => setCategory(c)}
+                style={{
+                  padding: '7px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer', border: '1.5px solid',
+                  borderColor: category === c ? '#042C53' : '#ddd',
+                  background: category === c ? '#042C53' : '#fff',
+                  color: category === c ? '#fff' : '#73726c',
+                  fontWeight: category === c ? 600 : 400,
+                }}>{c}</button>
+            ))}
           </div>
-          <Link href={`/player/${profile.public_slug}`} target="_blank" className={styles.viewProfileBtn}>
-            View Public Profile →
-          </Link>
+        </div>
+
+        {/* File input */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: '#73726c', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 6 }}>Video File</label>
+          <input ref={fileRef} type="file" accept="video/*"
+            onChange={e => setFile(e.target.files?.[0] ?? null)}
+            style={{ fontSize: 13, color: '#73726c' }} />
+          {file && (
+            <div style={{ marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: '#73726c' }}>{file.name} ({Math.round(file.size / 1024 / 1024 * 10) / 10} MB)</div>
+              {file.size > 209715200 && (
+                <div style={{ fontSize: 12, color: '#B71C1C', marginTop: 4, padding: '6px 10px', background: '#FFEBEE', borderRadius: 6 }}>
+                  ⚠️ Large file ({Math.round(file.size / 1024 / 1024)} MB) — upload may take several minutes. For faster uploads, export at 1080p from GoPro Player.
+                </div>
+              )}
+              {file.size > 524288000 && (
+                <div style={{ fontSize: 12, color: '#B71C1C', marginTop: 4, padding: '6px 10px', background: '#FFEBEE', borderRadius: 6 }}>
+                  ❌ File exceeds 500MB limit. Please compress before uploading.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Upload status */}
+        {uploading && (
+          <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 16, height: 16, border: '2px solid #042C53', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ fontSize: 13, color: '#73726c' }}>Uploading video — this may take a moment for large files...</div>
+          </div>
+        )}
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+
+        <button onClick={handleUpload} disabled={uploading || !selectedPlayer || !file || !title.trim() || (file?.size ?? 0) > 524288000}
+          style={{
+            background: uploading || !selectedPlayer || !file || !title.trim() || (file?.size ?? 0) > 524288000 ? '#B4B2A9' : '#042C53',
+            color: '#fff', border: 'none', borderRadius: 10, padding: '12px 28px',
+            fontSize: 14, fontWeight: 700, cursor: uploading ? 'not-allowed' : 'pointer',
+          }}>
+          {uploading ? 'Uploading...' : '⬆️ Upload Video'}
+        </button>
+      </div>
+
+      {/* Recent uploads */}
+      {recentUploads.length > 0 && (
+        <div style={{ background: '#fff', borderRadius: 14, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#042C53', marginBottom: 16 }}>Recent Uploads</div>
+          {recentUploads.map(v => (
+            <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 8, background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: 18 }}>🎬</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>{v.title}</div>
+                <div style={{ fontSize: 11, color: '#73726c' }}>
+                  {v.player?.user?.name} · {v.category} · {new Date(v.created_at).toLocaleDateString()}
+                </div>
+              </div>
+              <a href={v.video_url} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 12, color: '#185FA5', textDecoration: 'none', fontWeight: 500 }}>
+                View →
+              </a>
+            </div>
+          ))}
         </div>
       )}
     </div>
