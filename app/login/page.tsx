@@ -38,7 +38,34 @@ export default function PlayerLogin() {
         return
       }
 
-      router.push('/dashboard')
+      // Players don't have a dedicated dashboard yet — send them to
+      // their own public profile page instead. Generate a slug on the
+      // fly if one hasn't been set (public_slug is nullable).
+      const { data: profile } = await supabase
+        .from('player_profiles')
+        .select('id, public_slug')
+        .eq('user_id', data.user.id)
+        .single()
+
+      if (!profile) {
+        throw new Error('No player profile found for this account. Please contact support.')
+      }
+
+      let slug = profile.public_slug
+      if (!slug) {
+        slug = profile.id
+        const { error: slugError } = await supabase
+          .from('player_profiles')
+          .update({ public_slug: slug })
+          .eq('id', profile.id)
+        if (slugError) {
+          // Non-fatal — fall back to the id-based slug even if the
+          // write didn't persist, so the redirect still works today.
+          console.error('Could not persist generated slug:', slugError)
+        }
+      }
+
+      router.push(`/player/${slug}`)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Login failed')
     } finally {
