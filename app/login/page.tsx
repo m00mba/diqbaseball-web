@@ -122,6 +122,11 @@ export default function PlayerLogin() {
               placeholder="••••••••"
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
             />
+            <div style={{ textAlign: 'right', marginTop: 8 }}>
+              <Link href="/forgot-password" style={{ fontSize: 12, color: '#185FA5', textDecoration: 'none' }}>
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <button
