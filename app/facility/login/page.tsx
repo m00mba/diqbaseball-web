@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import styles from './login.module.css'
 
@@ -68,6 +69,9 @@ export default function FacilityLogin() {
             <label className={styles.label}>Password</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} className={styles.input} placeholder="••••••••" required />
           </div>
+          <Link href="/forgot-password" className={styles.forgotLink}>
+            Forgot password?
+          </Link>
           {error && <div className={styles.error}>{error}</div>}
           <button type="submit" className={styles.btn} disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}

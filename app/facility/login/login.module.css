@@ -105,6 +105,18 @@
   border-left: 3px solid var(--red);
 }
 
+.forgotLink {
+  font-size: 13px;
+  color: var(--navy);
+  text-align: right;
+  text-decoration: none;
+  margin-top: -8px;
+}
+
+.forgotLink:hover {
+  text-decoration: underline;
+}
+
 .btn {
   background: var(--navy);
   color: var(--white);
