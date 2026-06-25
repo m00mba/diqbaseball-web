@@ -27,6 +27,12 @@ const nextConfig: NextConfig = {
         destination: "/coach/login",
         permanent: false,
       },
+      {
+        source: "/",
+        has: [{ type: "host", value: "facility.iqbio.io" }],
+        destination: "/facility/login",
+        permanent: false,
+      },
     ];
   },
 };
