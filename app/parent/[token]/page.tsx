@@ -181,6 +181,10 @@ export default function ParentView({ params }: { params: Promise<{ token: string
   }
 
   async function handleLogGame() {
+    if (!parentUser) {
+      setSuccessMsg('Please sign in or create an account to log games.')
+      return
+    }
     if (!opponent.trim() || !ab) {
       setSuccessMsg('Please fill in opponent and at bats')
       return
@@ -191,7 +195,7 @@ export default function ParentView({ params }: { params: Promise<{ token: string
         .from('game_stats')
         .insert({
           player_id: player.id,
-          logged_by: player.user_id,
+          logged_by: parentUser.id,
           opponent: opponent.trim(),
           game_date: gameDate,
           result,
