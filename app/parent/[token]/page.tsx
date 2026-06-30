@@ -232,6 +232,19 @@ export default function ParentView({ params }: { params: Promise<{ token: string
     }
   }
 
+  async function handleDeleteGame(gameId: string) {
+    if (!confirm('Delete this game? This cannot be undone.')) return
+    const { error } = await supabase
+      .from('game_stats')
+      .delete()
+      .eq('id', gameId)
+    if (error) {
+      alert(`Could not delete: ${error.message}`)
+      return
+    }
+    setGameStats(prev => prev.filter(g => g.id !== gameId))
+  }
+
   if (loading) return (
     <div className={styles.loadingPage}>
       <div className={styles.loadingDot} />
@@ -498,8 +511,8 @@ export default function ParentView({ params }: { params: Promise<{ token: string
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: '#f8f8f7' }}>
-                    {['Date', 'Opponent', 'AB', 'H', 'HR', 'RBI', 'BB', 'K', 'SB', 'Src'].map(h => (
-                      <th key={h} style={{ padding: '6px 8px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#73726c', textTransform: 'uppercase' }}>{h}</th>
+                    {['Date', 'Opponent', 'AB', 'H', 'HR', 'RBI', 'BB', 'K', 'SB', 'Src', ...(parentUser ? [''] : [])].map((h, i) => (
+                      <th key={i} style={{ padding: '6px 8px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#73726c', textTransform: 'uppercase' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -522,6 +535,17 @@ export default function ParentView({ params }: { params: Promise<{ token: string
                           {g.source === 'gamechanger' ? 'Coach' : 'Self'}
                         </span>
                       </td>
+                      {parentUser && (
+                        <td style={{ padding: '6px 8px' }}>
+                          {g.logged_by === parentUser.id && (
+                            <button
+                              onClick={() => handleDeleteGame(g.id)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CC2E2E', fontSize: 13, padding: '2px 4px' }}
+                              title="Delete this game"
+                            >✕</button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
