@@ -2,7 +2,7 @@
 import Link from 'next/link'
 
 export default function PrivacyPolicy() {
-  const lastUpdated = 'May 29, 2026'
+  const lastUpdated = 'July 12, 2026'
 
   return (
     <div style={{
@@ -61,21 +61,10 @@ export default function PrivacyPolicy() {
             </ul>
           </Section>
 
-          <Section title="3. Children's Privacy (COPPA)">
-            <p>Diamond IQ Baseball is designed for use by baseball and softball players, including players under the age of 13. We comply with the Children's Online Privacy Protection Act (COPPA).</p>
-            <p><strong>For users under 13:</strong> We require verifiable parental consent before collecting personal information from children under 13. If a player is under 13, a parent or guardian must:</p>
-            <ul>
-              <li>Create the account on behalf of the child, or</li>
-              <li>Provide explicit consent via the parental consent flow in the app</li>
-            </ul>
-            <p><strong>What we collect from minors:</strong> We limit data collection from users under 13 to what is necessary to provide the service — name, performance metrics, game statistics, and profile information for recruiting purposes.</p>
-            <p><strong>Parental rights:</strong> Parents or guardians may at any time:</p>
-            <ul>
-              <li>Review the personal information collected about their child</li>
-              <li>Request deletion of their child's account and data</li>
-              <li>Refuse to permit further collection of their child's information</li>
-            </ul>
-            <p>To exercise these rights, contact us at <a href="mailto:kelly@iqbio.io" style={{ color: '#185FA5' }}>kelly@iqbio.io</a>.</p>
+          <Section title="3. Age Requirements">
+            <p>Diamond IQ Baseball is designed for users who are 13 years of age or older. By creating an account, you confirm that you are at least 13 years old.</p>
+            <p>We do not knowingly collect personal information from children under 13. If we become aware that a user under 13 has created an account, we will promptly delete their account and associated personal information.</p>
+            <p>If you believe a child under 13 has created an account on our Platform, please contact us at <a href="mailto:kelly@iqbio.io" style={{ color: '#185FA5' }}>kelly@iqbio.io</a> so we can remove their information promptly.</p>
           </Section>
 
           <Section title="4. How We Use Your Information">
