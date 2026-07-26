@@ -45,6 +45,10 @@ export default async function Image({ params }: { params: { slug: string } }) {
         playerName = userData[0].name
       }
     }
+  } catch (e) {
+    console.error('OG image fetch error:', e)
+  }
+
   // Fallback: parse name from slug (e.g. "kasey-odonnell-2029" → "Kasey Odonnell")
   if (playerName === 'Diamond IQ Player') {
     const slugParts = params.slug.split('-').filter(p => !/^\d{4}$/.test(p))
