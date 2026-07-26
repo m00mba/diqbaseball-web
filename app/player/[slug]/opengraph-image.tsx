@@ -12,36 +12,41 @@ export default async function Image({ params }: { params: { slug: string } }) {
   let profile: any = null
   let playerName = 'Diamond IQ Player'
 
+  const SUPABASE_URL = 'https://mqrqtsjzzhlarpurjmmr.supabase.co'
+  const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+
   try {
-    // Fetch player profile
     const profileRes = await fetch(
-      `${supabaseUrl}/rest/v1/player_profiles?public_slug=eq.${encodeURIComponent(params.slug)}&select=id,user_id,diq_score,positions,grad_year,high_school,state,exit_velo,arm_velo,sixty_time,fb_velo&limit=1`,
+      `${SUPABASE_URL}/rest/v1/player_profiles?public_slug=eq.${encodeURIComponent(params.slug)}&select=id,user_id,diq_score,positions,grad_year,high_school,state,exit_velo,arm_velo,sixty_time,fb_velo&limit=1`,
       {
         headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
         },
+        cache: 'no-store',
       }
     )
     const profileData = await profileRes.json()
-    profile = Array.isArray(profileData) ? profileData[0] : null
+    profile = Array.isArray(profileData) && profileData.length > 0 ? profileData[0] : null
 
     if (profile?.user_id) {
-      // Fetch user name separately
       const userRes = await fetch(
-        `${supabaseUrl}/rest/v1/users?id=eq.${profile.user_id}&select=name&limit=1`,
+        `${SUPABASE_URL}/rest/v1/users?id=eq.${profile.user_id}&select=name&limit=1`,
         {
           headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
           },
+          cache: 'no-store',
         }
       )
       const userData = await userRes.json()
-      playerName = Array.isArray(userData) && userData[0]?.name ? userData[0].name : 'Diamond IQ Player'
+      if (Array.isArray(userData) && userData[0]?.name) {
+        playerName = userData[0].name
+      }
     }
   } catch (e) {
-    // Fallback to default if fetch fails
+    console.error('OG image fetch error:', e)
   }
   const positions = profile?.positions?.join(' · ') ?? ''
   const gradYear = profile?.grad_year ? `Class of ${profile.grad_year}` : ''
