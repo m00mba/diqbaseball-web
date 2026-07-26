@@ -9,22 +9,40 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export default async function Image({ params }: { params: { slug: string } }) {
-  // Use direct REST API fetch — supabase-js client doesn't work reliably in Edge runtime
-  const res = await fetch(
-    `${supabaseUrl}/rest/v1/player_profiles?public_slug=eq.${params.slug}&select=diq_score,positions,grad_year,high_school,state,bio,exit_velo,arm_velo,sixty_time,fb_velo,user:users(name)&limit=1`,
-    {
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Content-Type': 'application/json',
-      },
+  let profile: any = null
+  let playerName = 'Diamond IQ Player'
+
+  try {
+    // Fetch player profile
+    const profileRes = await fetch(
+      `${supabaseUrl}/rest/v1/player_profiles?public_slug=eq.${encodeURIComponent(params.slug)}&select=id,user_id,diq_score,positions,grad_year,high_school,state,exit_velo,arm_velo,sixty_time,fb_velo&limit=1`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+      }
+    )
+    const profileData = await profileRes.json()
+    profile = Array.isArray(profileData) ? profileData[0] : null
+
+    if (profile?.user_id) {
+      // Fetch user name separately
+      const userRes = await fetch(
+        `${supabaseUrl}/rest/v1/users?id=eq.${profile.user_id}&select=name&limit=1`,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        }
+      )
+      const userData = await userRes.json()
+      playerName = Array.isArray(userData) && userData[0]?.name ? userData[0].name : 'Diamond IQ Player'
     }
-  )
-
-  const data = await res.json()
-  const profile = Array.isArray(data) ? data[0] : null
-
-  const name = (profile?.user as any)?.name ?? 'Diamond IQ Player'
+  } catch (e) {
+    // Fallback to default if fetch fails
+  }
   const positions = profile?.positions?.join(' · ') ?? ''
   const gradYear = profile?.grad_year ? `Class of ${profile.grad_year}` : ''
   const school = profile?.high_school ?? ''
@@ -32,7 +50,6 @@ export default async function Image({ params }: { params: { slug: string } }) {
   const diq = profile?.diq_score ? profile.diq_score.toFixed(1) : '—'
   const schoolLine = [school, state].filter(Boolean).join(', ')
 
-  // Key measurables
   const measurables = [
     profile?.exit_velo ? `${profile.exit_velo} mph EV` : null,
     profile?.arm_velo ? `${profile.arm_velo} mph Arm` : null,
@@ -129,14 +146,14 @@ export default async function Image({ params }: { params: { slug: string } }) {
             {/* Name */}
             <div
               style={{
-                fontSize: name.length > 20 ? '52px' : '64px',
+                fontSize: playerName.length > 20 ? '52px' : '64px',
                 fontWeight: '800',
                 color: '#ffffff',
                 lineHeight: '1.0',
                 display: 'flex',
               }}
             >
-              {name}
+              {playerName}
             </div>
 
             {/* Positions */}
