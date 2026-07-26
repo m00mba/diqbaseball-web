@@ -1,87 +1,56 @@
 import type { Metadata } from 'next'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://mqrqtsjzzhlarpurjmmr.supabase.co'
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
   const { slug } = await params
 
-  const res = await fetch(
-    `${supabaseUrl}/rest/v1/player_profiles?public_slug=eq.${slug}&select=diq_score,positions,grad_year,high_school,state,bio,photo_url,user:users(name)&limit=1`,
-    {
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-      },
-    }
-  )
-  const data = await res.json()
-  const profile = Array.isArray(data) ? data[0] : null
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/player_profiles?public_slug=eq.${slug}&select=user_id,diq_score,positions,grad_year,high_school,state,bio&limit=1`,
+      { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+    )
+    const data = await res.json()
+    const profile = Array.isArray(data) && data[0] ? data[0] : null
 
-  if (!profile) {
+    let playerName = slug.split('-').filter((p: string) => !/^\d{4}$/.test(p)).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+
+    if (profile?.user_id) {
+      const userRes = await fetch(
+        `${supabaseUrl}/rest/v1/users?id=eq.${profile.user_id}&select=name&limit=1`,
+        { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+      )
+      const userData = await userRes.json()
+      if (Array.isArray(userData) && userData[0]?.name) playerName = userData[0].name
+    }
+
+    const positions = profile?.positions?.join(', ') ?? ''
+    const gradYear = profile?.grad_year ? `Class of ${profile.grad_year}` : ''
+    const school = profile?.high_school ?? ''
+    const state = profile?.state ?? ''
+    const diq = profile?.diq_score ? Number(profile.diq_score).toFixed(1) : null
+
+    const descParts = [positions, gradYear, [school, state].filter(Boolean).join(' · '), diq ? `DIQ Score: ${diq}` : null].filter(Boolean)
+    const description = descParts.join(' · ') || 'Verified recruiting profile on Diamond IQ Baseball.'
+    const title = `${playerName} — Diamond IQ Baseball`
+    const profileUrl = `https://iqbio.io/player/${slug}`
+    const imageUrl = `https://iqbio.io/player/${slug}/opengraph-image`
+
     return {
-      title: 'Player Not Found — Diamond IQ Baseball',
-      description: 'Diamond IQ Baseball — Verified athlete intelligence for baseball recruiting.',
+      title,
+      description,
+      openGraph: { title, description, url: profileUrl, siteName: 'Diamond IQ Baseball', type: 'profile', images: [{ url: imageUrl, width: 1200, height: 630 }] },
+      twitter: { card: 'summary_large_image', title, description, images: [imageUrl] },
+      alternates: { canonical: profileUrl },
     }
-  }
-
-  const name = (profile.user as any)?.name ?? 'Unknown Player'
-  const positions = profile.positions?.join(', ') ?? ''
-  const gradYear = profile.grad_year ? `Class of ${profile.grad_year}` : ''
-  const school = profile.high_school ?? ''
-  const state = profile.state ?? ''
-  const diq = profile.diq_score ? profile.diq_score.toFixed(1) : null
-  const bio = profile.bio ?? ''
-
-  const title = `${name} — Diamond IQ Baseball`
-
-  const descParts = [
-    positions && `${positions}`,
-    gradYear,
-    school && state ? `${school} · ${state}` : school || state,
-    diq ? `DIQ Score: ${diq}` : null,
-    bio ? bio.slice(0, 100) + (bio.length > 100 ? '...' : '') : null,
-  ].filter(Boolean)
-
-  const description = descParts.join(' · ') || 'Verified recruiting profile on Diamond IQ Baseball.'
-
-  const profileUrl = `https://iqbio.io/player/${slug}`
-
-  // Use player photo if available, otherwise use a branded fallback
-  const imageUrl = profile.photo_url
-    ? profile.photo_url
-    : `https://iqbio.io/og-default.png`
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      url: profileUrl,
-      siteName: 'Diamond IQ Baseball',
-      type: 'profile',
-      images: [
-        {
-          url: imageUrl,
-          width: 400,
-          height: 400,
-          alt: `${name} — Diamond IQ Baseball`,
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary',
-      title,
-      description,
-      images: [imageUrl],
-      site: '@DIQBaseball',
-    },
-    alternates: {
-      canonical: profileUrl,
-    },
+  } catch (_) {
+    return {
+      title: 'Diamond IQ Baseball',
+      description: 'Verified athlete intelligence for baseball recruiting.',
+    }
   }
 }
 
