@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
 import type { Metadata } from 'next'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -9,16 +8,17 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { slug } = await params
 
-  const supabase = createClient(supabaseUrl, supabaseKey)
-
-  const { data: profile } = await supabase
-    .from('player_profiles')
-    .select(`
-      diq_score, positions, grad_year, high_school, state, bio, photo_url,
-      user:users(name)
-    `)
-    .eq('public_slug', slug)
-    .single()
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/player_profiles?public_slug=eq.${slug}&select=diq_score,positions,grad_year,high_school,state,bio,photo_url,user:users(name)&limit=1`,
+    {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+    }
+  )
+  const data = await res.json()
+  const profile = Array.isArray(data) ? data[0] : null
 
   if (!profile) {
     return {

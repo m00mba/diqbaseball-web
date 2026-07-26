@@ -1,5 +1,4 @@
 import { ImageResponse } from 'next/og'
-import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'edge'
 export const alt = 'Diamond IQ Baseball Player Profile'
@@ -10,17 +9,20 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export default async function Image({ params }: { params: { slug: string } }) {
-  const supabase = createClient(supabaseUrl, supabaseKey)
+  // Use direct REST API fetch — supabase-js client doesn't work reliably in Edge runtime
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/player_profiles?public_slug=eq.${params.slug}&select=diq_score,positions,grad_year,high_school,state,bio,exit_velo,arm_velo,sixty_time,fb_velo,user:users(name)&limit=1`,
+    {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  )
 
-  const { data: profile } = await supabase
-    .from('player_profiles')
-    .select(`
-      diq_score, positions, grad_year, high_school, state, bio,
-      exit_velo, arm_velo, sixty_time, fb_velo,
-      user:users(name)
-    `)
-    .eq('public_slug', params.slug)
-    .single()
+  const data = await res.json()
+  const profile = Array.isArray(data) ? data[0] : null
 
   const name = (profile?.user as any)?.name ?? 'Diamond IQ Player'
   const positions = profile?.positions?.join(' · ') ?? ''
