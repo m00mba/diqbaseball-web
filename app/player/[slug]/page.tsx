@@ -29,6 +29,7 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [followerCount, setFollowerCount] = useState(0)
 
   useEffect(() => {
     loadProfile()
@@ -54,6 +55,13 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
     }
 
     setPlayer(profile)
+
+    // Load follower count (coaches and scouts following this player)
+    const { count } = await supabase
+      .from('follows')
+      .select('id', { count: 'exact', head: true })
+      .eq('following_id', profile.user_id)
+    setFollowerCount(count ?? 0)
 
     // Load game stats
     const { data: stats } = await supabase
@@ -145,6 +153,11 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
             <div className={styles.diqScore}>
               <div className={styles.diqScoreValue}>{(player.diq_score ?? 0).toFixed(1)}</div>
               <div className={styles.diqScoreLabel}>DIQ Score</div>
+              {followerCount > 0 && (
+                <div style={{ marginTop: 8, fontSize: 11, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>
+                  👁 {followerCount} {followerCount === 1 ? 'follower' : 'followers'}
+                </div>
+              )}
             </div>
           </div>
         </div>
