@@ -198,7 +198,7 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
             </div>
 
             {/* AI Analysis from latest session */}
-            {latestSession.ai_report && (
+            {player.hittrax_visible !== false && latestSession.ai_report && (
               <div className={styles.aiReport}>
                 {(() => {
                   const normalized = latestSession.ai_report
