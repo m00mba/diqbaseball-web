@@ -37,7 +37,7 @@ export async function generateMetadata(
     const description = descParts.join(' · ') || 'Verified recruiting profile on Diamond IQ Baseball.'
     const title = `${playerName} — Diamond IQ Baseball`
     const profileUrl = `https://iqbio.io/player/${slug}`
-    const imageUrl = `https://iqbio.io/player/${slug}/opengraph-image`
+    const imageUrl = `https://iqbio.io/og-default.png`
 
     return {
       title,
