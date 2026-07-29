@@ -92,8 +92,7 @@ export default function ParentView({ params }: { params: Promise<{ token: string
 
       setParentUser({ id: authData.user!.id, name: parentName, email: parentEmail, role: 'parent' })
       setShowSignup(false)
-      setSuccessMsg("✅ Account created! You can now manage your player's profile.")
-      setTimeout(() => setSuccessMsg(''), 4000)
+      setSuccessMsg('download_app')
     } catch (e: any) {
       setAuthError(e.message)
     } finally {
@@ -266,7 +265,38 @@ export default function ParentView({ params }: { params: Promise<{ token: string
       <Header />
 
       <div className={styles.container}>
-        {successMsg && <div className={styles.successBar}>{successMsg}</div>}
+        {successMsg === 'download_app' && (
+          <div style={{ backgroundColor: '#042C53', borderRadius: 12, padding: 20, marginBottom: 20, textAlign: 'center' }}>
+            <div style={{ fontSize: 22, marginBottom: 8 }}>🎉</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 6 }}>Account Created!</div>
+            <div style={{ fontSize: 13, color: 'rgba(181,212,244,0.9)', marginBottom: 16, lineHeight: 1.5 }}>
+              Download the Diamond IQ Baseball app to manage {player?.user?.name ?? 'your player'}'s profile, log games, and help promote their recruiting profile.
+            </div>
+            <a href="https://apps.apple.com/app/diamond-iq-baseball/id6744038519" 
+               style={{ display: 'inline-block', backgroundColor: '#C9A227', color: '#042C53', 
+                        fontWeight: 700, fontSize: 14, padding: '12px 24px', borderRadius: 8, 
+                        textDecoration: 'none' }}>
+              📱 Download on the App Store
+            </a>
+            <div style={{ fontSize: 11, color: 'rgba(181,212,244,0.6)', marginTop: 10 }}>Free · Available on iPhone and iPad</div>
+          </div>
+        )}
+        {successMsg && successMsg !== 'download_app' && <div className={styles.successBar}>{successMsg}</div>}
+
+        {/* App download reminder for logged-in parents */}
+        {parentUser && successMsg !== 'download_app' && (
+          <div style={{ backgroundColor: '#E6F1FB', borderRadius: 10, padding: 14, marginBottom: 16, 
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ fontSize: 13, color: '#042C53', fontWeight: 500 }}>
+              📱 Manage {player?.user?.name?.split(' ')[0] ?? 'their'}'s profile on the go
+            </div>
+            <a href="https://apps.apple.com/app/diamond-iq-baseball/id6744038519"
+               style={{ backgroundColor: '#042C53', color: '#C9A227', fontWeight: 700, fontSize: 12,
+                        padding: '8px 14px', borderRadius: 6, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              Get App
+            </a>
+          </div>
+        )}
 
         {/* Player hero */}
         <div className={styles.hero}>
