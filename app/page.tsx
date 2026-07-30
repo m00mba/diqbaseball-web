@@ -16,6 +16,7 @@ export default function Home() {
         <div className={styles.navLinks}>
           <Link href="/facilities" className={styles.navLink}>Find Facilities</Link>
           <a href="https://player.iqbio.io/login" className={styles.navLink}>Player Login</a>
+          <Link href="/coach/login" className={styles.navLink}>Coach Login</Link>
           <Link href="/facility/login" className={styles.navLink}>Facility Portal</Link>
           <Link href="#access" className={styles.navCta}>Request Access</Link>
         </div>
@@ -157,6 +158,7 @@ export default function Home() {
           <div className={styles.footerLinks}>
             <Link href="/facilities">Find Facilities</Link>
             <a href="https://player.iqbio.io/login">Player Login</a>
+            <Link href="/coach/login">Coach Login</Link>
             <Link href="/facility/login">Facility Portal</Link>
             <Link href="/privacy">Privacy Policy</Link>
             <a href="mailto:kelly@iqbio.io">Contact</a>
