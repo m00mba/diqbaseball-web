@@ -293,7 +293,12 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
                   hr: acc.hr + (g.hr ?? 0),
                   rbi: acc.rbi + (g.rbi ?? 0),
                   bb: acc.bb + (g.bb ?? 0),
-                  so: acc.so + (g.so ?? 0),
+                  // NOTE: was reading g.so, but the actual column on game_stats
+                  // is `k` (batting strikeouts — see game_stats schema: k is
+                  // grouped with batting columns, k_p is the separate pitching-
+                  // strikeouts column). g.so was always undefined, so this
+                  // total silently stayed 0 regardless of real data.
+                  so: acc.so + (g.k ?? 0),
                   sb: acc.sb + (g.sb ?? 0),
                 }), { ab: 0, h: 0, hr: 0, rbi: 0, bb: 0, so: 0, sb: 0 })
 
