@@ -44,6 +44,17 @@ export default function ParentView({ params }: { params: Promise<{ token: string
   const [authLoading, setAuthLoading] = useState(false)
   const [authError, setAuthError] = useState('')
 
+  // Someone arriving via the invite-email link already has a real Supabase
+  // Auth session (created when they clicked the emailed link) — but no
+  // public.users row yet, since the invite flow only creates the auth
+  // account. Previously this looked identical to "not signed in at all",
+  // sending them into the normal signup form, which then failed because
+  // that email was already registered. This tracks that specific state
+  // so we can complete their profile with just a name instead.
+  const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false)
+  const [pendingAuthUser, setPendingAuthUser] = useState<any>(null)
+  const [completingProfile, setCompletingProfile] = useState(false)
+
   useEffect(() => {
     loadProfile()
     checkParentSession()
@@ -52,8 +63,54 @@ export default function ParentView({ params }: { params: Promise<{ token: string
   async function checkParentSession() {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const { data } = await supabase.from('users').select('*').eq('id', user.id).single()
-      if (data?.role === 'parent') setParentUser(data)
+      const { data } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle()
+      if (data?.role === 'parent') {
+        setParentUser(data)
+      } else if (!data) {
+        // Real auth session (almost certainly just arrived via the invite
+        // email link), but no public.users row yet — let them complete
+        // their profile with just a name, instead of sending them into
+        // the signup form where auth.signUp() would fail on this
+        // already-registered email.
+        setNeedsProfileCompletion(true)
+        setPendingAuthUser(user)
+      }
+    }
+  }
+
+  async function handleCompleteProfile() {
+    if (!parentName.trim()) {
+      setAuthError('Please enter your name')
+      return
+    }
+    if (!pendingAuthUser) return
+    setCompletingProfile(true)
+    setAuthError('')
+    try {
+      const { error: userError } = await supabase.from('users').insert({
+        id: pendingAuthUser.id,
+        email: pendingAuthUser.email,
+        name: parentName.trim(),
+        role: 'parent',
+      })
+      if (userError) throw userError
+
+      if (player) {
+        await supabase.from('player_parents').upsert({
+          player_id: player.id,
+          parent_user_id: pendingAuthUser.id,
+          relationship: 'parent',
+        }, { onConflict: 'player_id,parent_user_id', ignoreDuplicates: true })
+      }
+
+      setParentUser({ id: pendingAuthUser.id, name: parentName.trim(), email: pendingAuthUser.email, role: 'parent' })
+      setNeedsProfileCompletion(false)
+      setPendingAuthUser(null)
+      setSuccessMsg('download_app')
+    } catch (e: any) {
+      setAuthError(e.message)
+    } finally {
+      setCompletingProfile(false)
     }
   }
 
@@ -272,7 +329,7 @@ export default function ParentView({ params }: { params: Promise<{ token: string
             <div style={{ fontSize: 13, color: 'rgba(181,212,244,0.9)', marginBottom: 16, lineHeight: 1.5 }}>
               Download the Diamond IQ Baseball app to manage {player?.user?.name ?? 'your player'}'s profile, log games, and help promote their recruiting profile.
             </div>
-            <a href="https://apps.apple.com/app/diamond-iq-baseball/id6744038519" 
+            <a href="https://apps.apple.com/app/diamond-iq-baseball/id6765897916" 
                style={{ display: 'inline-block', backgroundColor: '#C9A227', color: '#042C53', 
                         fontWeight: 700, fontSize: 14, padding: '12px 24px', borderRadius: 8, 
                         textDecoration: 'none' }}>
@@ -290,7 +347,7 @@ export default function ParentView({ params }: { params: Promise<{ token: string
             <div style={{ fontSize: 13, color: '#042C53', fontWeight: 500 }}>
               📱 Manage {player?.user?.name?.split(' ')[0] ?? 'their'}'s profile on the go
             </div>
-            <a href="https://apps.apple.com/app/diamond-iq-baseball/id6744038519"
+            <a href="https://apps.apple.com/app/diamond-iq-baseball/id6765897916"
                style={{ backgroundColor: '#042C53', color: '#C9A227', fontWeight: 700, fontSize: 12,
                         padding: '8px 14px', borderRadius: 6, textDecoration: 'none', whiteSpace: 'nowrap' }}>
               Get App
@@ -322,7 +379,20 @@ export default function ParentView({ params }: { params: Promise<{ token: string
         </div>
 
         {/* Parent Account Section */}
-        {!parentUser ? (
+        {needsProfileCompletion ? (
+          <div className={styles.card}>
+            <h3 className={styles.cardTitle}>👋 Welcome!</h3>
+            <p style={{ fontSize: 13, color: '#73726c', marginBottom: 16 }}>
+              You're verified — just add your name to finish linking to {player.user?.name?.split(' ')[0]}'s profile.
+            </p>
+            {authError && <div style={{ color: '#CC2E2E', fontSize: 13, marginBottom: 8 }}>{authError}</div>}
+            <input className={styles.input} value={parentName} onChange={e => setParentName(e.target.value)}
+              placeholder="Your full name" style={{ marginBottom: 12 }} />
+            <button className={styles.saveBtn} onClick={handleCompleteProfile} disabled={completingProfile}>
+              {completingProfile ? 'Saving...' : 'Continue'}
+            </button>
+          </div>
+        ) : !parentUser ? (
           <div className={styles.card}>
             <h3 className={styles.cardTitle}>📱 Parent Account</h3>
             <p style={{ fontSize: 13, color: '#73726c', marginBottom: 16 }}>
