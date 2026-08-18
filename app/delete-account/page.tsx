@@ -30,7 +30,7 @@ export default function DeleteAccountPage() {
             Option 2 — Without the app
           </h2>
           <p style={{ fontSize: 14, color: '#1a1a1a', lineHeight: 1.7, marginBottom: 12 }}>
-            Email <a href="mailto:kelly@destroyersbaseball.org?subject=Account%20Deletion%20Request" style={{ color: '#185FA5', fontWeight: 600 }}>kelly@destroyersbaseball.org</a> from the email address associated with your account, with the subject line "Account Deletion Request." We'll process your request within 7 days and confirm by email once it's complete.
+            Email <a href="mailto:kelly@iqbio.io?subject=Account%20Deletion%20Request" style={{ color: '#185FA5', fontWeight: 600 }}>kelly@iqbio.io</a> from the email address associated with your account, with the subject line "Account Deletion Request." We'll process your request within 7 days and confirm by email once it's complete.
           </p>
         </div>
 
