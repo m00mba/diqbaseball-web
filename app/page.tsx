@@ -161,6 +161,7 @@ export default function Home() {
             <Link href="/coach/login">Coach Login</Link>
             <Link href="/facility/login">Facility Portal</Link>
             <Link href="/privacy">Privacy Policy</Link>
+            <Link href="/delete-account">Delete Account</Link>
             <a href="mailto:kelly@iqbio.io">Contact</a>
           </div>
           <div className={styles.footerCopy}>© 2026 Diamond IQ Baseball. All rights reserved.</div>
