@@ -10,6 +10,7 @@ export default function Home() {
       {/* NAV */}
       <nav className={styles.nav}>
         <a href="https://www.iqbio.io" className={styles.navLogo} style={{textDecoration:"none"}}> 
+          <img src="/screenshots/nav-icon.png" alt="Diamond IQ Baseball icon" className={styles.navLogoIcon} />
           <span className={styles.navLogoText}>Diamond IQ</span>
           <span className={styles.navLogoBadge}>BASEBALL</span>
         </a>
@@ -53,6 +54,26 @@ export default function Home() {
           <div className={styles.heroStat}>
             <span className={styles.heroStatNum}>DIQ</span>
             <span className={styles.heroStatLbl}>Score System</span>
+          </div>
+        </div>
+      </section>
+
+      {/* PRODUCT PREVIEW */}
+      <section className={styles.preview}>
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionLabel}>See It In Action</div>
+          <h2 className={styles.sectionTitle}>Real App. Real Data.</h2>
+          <div className={styles.previewGrid}>
+            {[
+              { src: '/screenshots/screenshot-overview.png', caption: 'Verified DIQ Score & recruiting profile' },
+              { src: '/screenshots/screenshot-rankings.png', caption: 'Live rankings, updated weekly' },
+              { src: '/screenshots/screenshot-team.png', caption: 'Roster management for coaches' },
+            ].map(({ src, caption }) => (
+              <div key={src} className={styles.previewCard}>
+                <img src={src} alt={caption} className={styles.previewImg} />
+                <p className={styles.previewCaption}>{caption}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
