@@ -17,7 +17,7 @@
 
 .navLogo {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
 }
 
@@ -32,13 +32,13 @@
 
 .navLogoBadge {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--gold);
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   border: 1px solid var(--gold);
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: 3px;
 }
 
