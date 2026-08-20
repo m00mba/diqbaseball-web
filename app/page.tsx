@@ -32,7 +32,7 @@ export default function Home() {
             <span className={styles.heroTitleAccent}>Verified.</span>
           </h1>
           <p className={styles.heroSub}>
-            Diamond IQ connects players with coaches, scouts, and facilities through verified measurables — not self-reported stats. Every number in your profile is confirmed by a certified facility.
+            Diamond IQ connects players with coaches, scouts, and facilities through verified measurables — not self-reported stats. Every number in your profile is confirmed by a coach or a certified facility.
           </p>
           <div className={styles.heroCtas}>
             <Link href="#access" className={styles.btnPrimary}>Request Access</Link>
