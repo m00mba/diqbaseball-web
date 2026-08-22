@@ -434,6 +434,55 @@
   margin-top: 16px;
 }
 
+.storeButtons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+
+.storeBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 10px 20px 10px 16px;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.storeBtn:hover {
+  background: #1a1a1a;
+  transform: translateY(-1px);
+}
+
+.storeBtnIcon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.storeBtnText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.storeBtnSmall {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 400;
+}
+
+.storeBtnBig {
+  font-size: 17px;
+  color: #fff;
+  font-weight: 600;
+  font-family: 'Barlow', sans-serif;
+}
+
 /* FOOTER */
 .footer {
   background: var(--navy-dark);

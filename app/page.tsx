@@ -169,6 +169,22 @@ export default function Home() {
           </p>
           <RequestAccessForm />
           <p className={styles.downloadNote}>Players, coaches, scouts, and facilities welcome.</p>
+          <div className={styles.storeButtons}>
+            <a href="https://apps.apple.com/app/id6765897916" className={styles.storeBtn} target="_blank" rel="noopener noreferrer">
+              <span className={styles.storeBtnIcon}>🍎</span>
+              <span className={styles.storeBtnText}>
+                <span className={styles.storeBtnSmall}>Download on the</span>
+                <span className={styles.storeBtnBig}>App Store</span>
+              </span>
+            </a>
+            <a href="https://play.google.com/store/apps/details?id=com.diqbaseball.app" className={styles.storeBtn} target="_blank" rel="noopener noreferrer">
+              <span className={styles.storeBtnIcon}>▶</span>
+              <span className={styles.storeBtnText}>
+                <span className={styles.storeBtnSmall}>Get it on</span>
+                <span className={styles.storeBtnBig}>Google Play</span>
+              </span>
+            </a>
+          </div>
         </div>
       </section>
 
