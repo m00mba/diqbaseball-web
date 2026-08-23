@@ -61,7 +61,10 @@ export default function FacilityDashboard() {
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
+  const [extractingImage, setExtractingImage] = useState(false)
+  const [imageError, setImageError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+  const imageRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -125,6 +128,45 @@ export default function FacilityDashboard() {
       setCsvData(parsed)
     }
     reader.readAsText(file)
+  }
+
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageError('')
+    setCsvFileName(file.name)
+    setExtractingImage(true)
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          // Strip the "data:image/png;base64," prefix — the function
+          // wants just the raw base64 payload
+          resolve(result.split(',')[1] ?? '')
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      const { data, error } = await supabase.functions.invoke('parse-hittrax-image', {
+        body: { imageBase64: base64, mediaType: file.type || 'image/png' },
+      })
+
+      if (error) throw error
+      if (data?.error) {
+        setImageError(data.error)
+        setCsvData(null)
+        return
+      }
+
+      setCsvData(data.data)
+    } catch (err: any) {
+      setImageError(err?.message ?? 'Could not read this image. Please try again or use the CSV upload instead.')
+      setCsvData(null)
+    } finally {
+      setExtractingImage(false)
+    }
   }
 
   async function handleVerify() {
@@ -234,9 +276,26 @@ export default function FacilityDashboard() {
             onChange={handleFileChange}
             style={{ display: 'none' }}
           />
-          <button className={styles.uploadBtn} onClick={() => fileRef.current?.click()}>
-            📂 Choose CSV File
-          </button>
+          <input
+            ref={imageRef}
+            type="file"
+            accept="image/png,image/jpeg"
+            onChange={handleImageChange}
+            style={{ display: 'none' }}
+          />
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <button className={styles.uploadBtn} onClick={() => fileRef.current?.click()}>
+              📂 Choose CSV File
+            </button>
+            <button className={styles.uploadBtn} onClick={() => imageRef.current?.click()} disabled={extractingImage}>
+              {extractingImage ? '🔄 Reading image...' : '📷 Or Upload a Screenshot'}
+            </button>
+          </div>
+          {imageError && (
+            <div className={styles.csvStatus}>
+              <span className={styles.csvErr}>❌ {imageError}</span>
+            </div>
+          )}
           {csvFileName && (
             <div className={styles.csvStatus}>
               <span className={styles.csvFile}>📄 {csvFileName}</span>
