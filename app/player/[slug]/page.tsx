@@ -340,8 +340,26 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
         <div className={styles.footer}>
           <div className={styles.footerLogo}>Diamond IQ</div>
           <p className={styles.footerText}>
-            Verified athlete intelligence for baseball recruiting.
-            <a href="https://diqbaseball.com" className={styles.footerLink}> Learn more →</a>
+            Want your own verified profile? Coaches and scouts are already looking.
+          </p>
+          <div className={styles.footerStoreBtns}>
+            <a href="https://apps.apple.com/app/id6765897916" className={styles.footerStoreBtn} target="_blank" rel="noopener noreferrer">
+              <span className={styles.footerStoreBtnIcon}>🍎</span>
+              <span className={styles.footerStoreBtnText}>
+                <span className={styles.footerStoreBtnSmall}>Download on the</span>
+                <span className={styles.footerStoreBtnBig}>App Store</span>
+              </span>
+            </a>
+            <a href="https://play.google.com/store/apps/details?id=com.diqbaseball.app" className={styles.footerStoreBtn} target="_blank" rel="noopener noreferrer">
+              <span className={styles.footerStoreBtnIcon}>▶</span>
+              <span className={styles.footerStoreBtnText}>
+                <span className={styles.footerStoreBtnSmall}>Get it on</span>
+                <span className={styles.footerStoreBtnBig}>Google Play</span>
+              </span>
+            </a>
+          </div>
+          <p className={styles.footerText} style={{ marginTop: 12 }}>
+            <a href="https://iqbio.io" className={styles.footerLink}>Learn more at iqbio.io →</a>
           </p>
         </div>
       </div>
