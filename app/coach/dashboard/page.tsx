@@ -1258,7 +1258,7 @@ function HighlightsTab({ user, flash }: any) {
                   {v.player?.user?.name} · {v.category} · {new Date(v.created_at).toLocaleDateString()}
                 </div>
               </div>
-              <a href={v.video_url} target="_blank" rel="noopener noreferrer"
+              <a href={v.playback_url} target="_blank" rel="noopener noreferrer"
                 style={{ fontSize: 12, color: '#185FA5', textDecoration: 'none', fontWeight: 500 }}>
                 View →
               </a>
