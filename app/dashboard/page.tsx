@@ -228,10 +228,15 @@ function UploadTab({ user, flash }: any) {
 
       // Search by last name - strip apostrophes for matching
       const lastNameClean = normalize(lastName)
+      // Wide net for the database lookup. A stored name can contain an apostrophe
+      // (like O'Dell) that the cleaned-up search text no longer has, so searching
+      // for the whole cleaned last name (odell) can never match it. Search on the
+      // last few letters instead; the exact name check below still does the matching.
+      const lastNameFragment = lastNameClean.replace(/\s+/g, '').slice(-4)
       const { data: users } = await supabase
         .from('users')
         .select('id, name, player_profile:player_profiles(id)')
-        .ilike('name', `%${lastNameClean}%`)
+        .ilike('name', `%${lastNameFragment}%`)
         .eq('role', 'player')
 
       // Find best match
