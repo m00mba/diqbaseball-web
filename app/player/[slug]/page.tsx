@@ -30,6 +30,7 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
   const [notFound, setNotFound] = useState(false)
   const [copied, setCopied] = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
+  const [profileVideo, setProfileVideo] = useState<any>(null)
 
   useEffect(() => {
     loadProfile()
@@ -70,6 +71,17 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
       .eq('player_id', profile.id)
       .order('game_date', { ascending: false })
     setGameStats(stats ?? [])
+
+    // Load the player's chosen profile video. The public page shows only this one.
+    // Only the columns needed to play it are requested.
+    const { data: videoRows } = await supabase
+      .from('player_videos')
+      .select('id, title, playback_url')
+      .eq('player_id', profile.id)
+      .eq('is_profile_video', true)
+      .order('sort_order', { ascending: true })
+      .limit(1)
+    setProfileVideo(videoRows?.[0] ?? null)
 
     // Load verified sessions if hittrax_visible
     if (profile.hittrax_visible !== false) {
@@ -252,6 +264,26 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Profile highlight video: shown only when the player has chosen one */}
+        {profileVideo?.playback_url && (
+          <div className={styles.card}>
+            <h3 className={styles.cardTitle}>🎥 Highlight Video</h3>
+            <video
+              controls
+              preload="metadata"
+              playsInline
+              src={profileVideo.playback_url}
+              style={{ width: '100%', maxHeight: 480, borderRadius: 10, background: '#000' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 13, color: '#73726c' }}>
+              <span>{profileVideo.title}</span>
+              <a href={profileVideo.playback_url} target="_blank" rel="noopener noreferrer" style={{ color: '#185FA5', textDecoration: 'none' }}>
+                Open in a new tab
+              </a>
+            </div>
           </div>
         )}
 
