@@ -210,48 +210,32 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
                 ))}
             </div>
 
-            {/* AI Analysis from latest session */}
-            {player.hittrax_visible !== false && latestSession.ai_report && (
-              <div className={styles.aiReport}>
-                {(() => {
-                  const normalized = latestSession.ai_report
-                    .replace(/^#{1,3}\s*STRENGTHS\s*/im, 'STRENGTHS:')
-                    .replace(/^#{1,3}\s*OPPORTUNITIES\s*/im, 'OPPORTUNITIES:')
-                    .replace(/^#{1,3}\s*RECOMMENDED DRILLS\s*/im, 'RECOMMENDED DRILLS:')
-                    .replace(/^#[^#\n]*\n/m, '')
+            {/* AI Analysis from latest session. The public page shows strengths only;
+                development areas and drills are intentionally not displayed here. */}
+            {player.hittrax_visible !== false && latestSession.ai_report && (() => {
+              const normalized = latestSession.ai_report
+                .replace(/^#{1,3}\s*STRENGTHS\s*/im, 'STRENGTHS:')
+                .replace(/^#{1,3}\s*OPPORTUNITIES\s*/im, 'OPPORTUNITIES:')
+                .replace(/^#{1,3}\s*RECOMMENDED DRILLS\s*/im, 'RECOMMENDED DRILLS:')
+                .replace(/^#[^#\n]*\n/m, '')
 
-                  const strengthsMatch = normalized.match(/STRENGTHS:([\s\S]*?)(?=OPPORTUNITIES:|$)/i)
-                  const opportunitiesMatch = normalized.match(/OPPORTUNITIES:([\s\S]*?)(?=RECOMMENDED DRILLS:|$)/i)
+              const strengthsMatch = normalized.match(/STRENGTHS:([\s\S]*?)(?=OPPORTUNITIES:|RECOMMENDED DRILLS:|$)/i)
+              const strengthsText = strengthsMatch ? strengthsMatch[1].replace(/\*\*/g, '').trim() : ''
 
-                  if (!strengthsMatch && !opportunitiesMatch) {
-                    return (
-                      <>
-                        <div className={styles.aiSectionTitle} style={{ color: '#042C53' }}>🏟 Facility Analysis</div>
-                        <p className={styles.aiText}>{latestSession.ai_report}</p>
-                      </>
-                    )
-                  }
+              // No recognizable Strengths section means show nothing. The raw text
+              // could contain development notes and there is no safe way to tell.
+              if (!strengthsText) return null
 
-                  return (
-                    <>
-                      <div className={styles.aiSectionTitle} style={{ color: '#042C53' }}>🏟 Facility Analysis</div>
-                      {strengthsMatch && (
-                        <div className={styles.aiSection}>
-                          <div className={styles.aiSectionLabel} style={{ color: '#27500A' }}>✅ Strengths</div>
-                          <p className={styles.aiText}>{strengthsMatch[1].replace(/\*\*/g, '').trim()}</p>
-                        </div>
-                      )}
-                      {opportunitiesMatch && (
-                        <div className={styles.aiSection}>
-                          <div className={styles.aiSectionLabel} style={{ color: '#7A5200' }}>🎯 Development Areas</div>
-                          <p className={styles.aiText}>{opportunitiesMatch[1].replace(/\*\*/g, '').trim()}</p>
-                        </div>
-                      )}
-                    </>
-                  )
-                })()}
-              </div>
-            )}
+              return (
+                <div className={styles.aiReport}>
+                  <div className={styles.aiSectionTitle} style={{ color: '#042C53' }}>🏟 Facility Analysis</div>
+                  <div className={styles.aiSection}>
+                    <div className={styles.aiSectionLabel} style={{ color: '#27500A' }}>✅ Strengths</div>
+                    <p className={styles.aiText}>{strengthsText}</p>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Session history */}
             {sessions.length > 1 && (
