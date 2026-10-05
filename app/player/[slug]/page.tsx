@@ -300,10 +300,23 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
                   // total silently stayed 0 regardless of real data.
                   so: acc.so + (g.k ?? 0),
                   sb: acc.sb + (g.sb ?? 0),
-                }), { ab: 0, h: 0, hr: 0, rbi: 0, bb: 0, so: 0, sb: 0 })
+                  doubles: acc.doubles + (g.doubles ?? 0),
+                  triples: acc.triples + (g.triples ?? 0),
+                  runs: acc.runs + (g.runs ?? 0),
+                  hbp: acc.hbp + (g.hbp ?? 0),
+                }), { ab: 0, h: 0, hr: 0, rbi: 0, bb: 0, so: 0, sb: 0, doubles: 0, triples: 0, runs: 0, hbp: 0 })
 
                 const avg = totals.ab > 0 ? (totals.h / totals.ab).toFixed(3).replace('0.', '.') : '.000'
-                const obp = totals.ab > 0 ? ((totals.h + totals.bb) / (totals.ab + totals.bb)).toFixed(3).replace('0.', '.') : '.000'
+                // OBP now counts hit-by-pitch. Sacrifice flies are not tracked, so
+                // this is very close to, but not exactly, the official formula.
+                const fmt = (n: number) => n.toFixed(3).replace(/^0\./, '.')
+                const plateApps = totals.ab + totals.bb + totals.hbp
+                const obpValue = plateApps > 0 ? (totals.h + totals.bb + totals.hbp) / plateApps : 0
+                const totalBases = totals.h + totals.doubles + 2 * totals.triples + 3 * totals.hr
+                const slgValue = totals.ab > 0 ? totalBases / totals.ab : 0
+                const obp = totals.ab > 0 ? fmt(obpValue) : '.000'
+                const slg = totals.ab > 0 ? fmt(slgValue) : '.000'
+                const ops = totals.ab > 0 ? fmt(obpValue + slgValue) : '.000'
 
                 return (
                   <div key={seasonKey} className={styles.seasonBlock}>
@@ -311,16 +324,22 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
                       <span className={styles.seasonName}>{seasonKey}</span>
                       <span className={styles.seasonGames}>{games.length} games</span>
                     </div>
-                    <div className={styles.seasonStats}>
+                    <div className={styles.seasonStats} style={{ flexWrap: 'wrap' }}>
                       {[
                         { label: 'AVG', value: avg },
                         { label: 'OBP', value: obp },
+                        { label: 'SLG', value: slg },
+                        { label: 'OPS', value: ops },
                         { label: 'AB', value: totals.ab },
                         { label: 'H', value: totals.h },
+                        { label: '2B', value: totals.doubles },
+                        { label: '3B', value: totals.triples },
                         { label: 'HR', value: totals.hr },
                         { label: 'RBI', value: totals.rbi },
+                        { label: 'R', value: totals.runs },
                         { label: 'BB', value: totals.bb },
                         { label: 'SO', value: totals.so },
+                        { label: 'HBP', value: totals.hbp },
                         { label: 'SB', value: totals.sb },
                       ].map(({ label, value }) => (
                         <div key={label} className={styles.seasonStat}>
