@@ -43,8 +43,10 @@ export default function PlayerPublicProfile({ params }: { params: Promise<{ slug
     const { data: profile, error } = await supabase
       .from('player_profiles')
       .select(`
-        *,
-        user:users(name, email)
+        id, user_id, public_slug, positions, grad_year, high_school, travel_team, state,
+        height_in, weight_lbs, bats, throws, gpa, sat, act, bio, diq_score, photo_url,
+        hittrax_visible,
+        user:users(name)
       `)
       .eq('public_slug', slug)
       .single()

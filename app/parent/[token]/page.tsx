@@ -197,16 +197,10 @@ export default function ParentView({ params }: { params: Promise<{ token: string
   async function loadProfile() {
     setLoading(true)
 
+    // Looked up through a database function, so visitors can never read the
+    // parent-token column directly.
     const { data: profile, error } = await supabase
-      .from('player_profiles')
-      .select(`
-        *,
-        user:users(name),
-        hs_team:teams!hs_team_id(name),
-        travel_team:teams!travel_team_id(name)
-      `)
-      .eq('parent_token', token)
-      .single()
+      .rpc('get_player_by_parent_token', { p_token: token })
 
     if (error || !profile) {
       setNotFound(true)
