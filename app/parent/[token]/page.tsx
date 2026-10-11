@@ -54,6 +54,8 @@ export default function ParentView({ params }: { params: Promise<{ token: string
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false)
   const [pendingAuthUser, setPendingAuthUser] = useState<any>(null)
   const [completingProfile, setCompletingProfile] = useState(false)
+  // 'pending' = waiting for the player to approve; 'approved' = already linked
+  const [linkStatus, setLinkStatus] = useState('')
 
   useEffect(() => {
     loadProfile()
@@ -74,8 +76,17 @@ export default function ParentView({ params }: { params: Promise<{ token: string
         // already-registered email.
         setNeedsProfileCompletion(true)
         setPendingAuthUser(user)
+        if (user.user_metadata?.name) setParentName(String(user.user_metadata.name))
       }
     }
+  }
+
+  // Asks the database to link this signed-in parent to the player. The link starts as
+  // 'pending' until the player approves it in the app.
+  async function linkToPlayer(): Promise<string> {
+    const { data, error } = await supabase.rpc('link_parent_via_token', { p_token: token })
+    if (error) throw error
+    return (data as string) ?? 'pending'
   }
 
   async function handleCompleteProfile() {
@@ -95,13 +106,8 @@ export default function ParentView({ params }: { params: Promise<{ token: string
       })
       if (userError) throw userError
 
-      if (player) {
-        await supabase.from('player_parents').upsert({
-          player_id: player.id,
-          parent_user_id: pendingAuthUser.id,
-          relationship: 'parent',
-        }, { onConflict: 'player_id,parent_user_id', ignoreDuplicates: true })
-      }
+      const status = await linkToPlayer()
+      setLinkStatus(status)
 
       setParentUser({ id: pendingAuthUser.id, name: parentName.trim(), email: pendingAuthUser.email, role: 'parent' })
       setNeedsProfileCompletion(false)
@@ -126,30 +132,34 @@ export default function ParentView({ params }: { params: Promise<{ token: string
       const { data: authData, error: signupError } = await supabase.auth.signUp({
         email: parentEmail,
         password: parentPassword,
+        options: {
+          data: { name: parentName.trim(), role: 'parent' },
+          emailRedirectTo: 'https://iqbio.io/auth/callback',
+        },
       })
       if (signupError) throw signupError
 
-      // Create users record
-      const { error: userError } = await supabase.from('users').insert({
-        id: authData.user!.id,
-        email: parentEmail,
-        name: parentName,
-        role: 'parent',
-      })
-      if (userError) throw userError
-
-      // Link to player
-      if (player) {
-        await supabase.from('player_parents').insert({
-          player_id: player.id,
-          parent_user_id: authData.user!.id,
-          relationship: 'parent',
+      if (authData.session && authData.user) {
+        // Email confirmation is off: already signed in, so finish right away
+        const { error: userError } = await supabase.from('users').insert({
+          id: authData.user.id,
+          email: parentEmail,
+          name: parentName.trim(),
+          role: 'parent',
         })
-      }
+        if (userError) throw userError
 
-      setParentUser({ id: authData.user!.id, name: parentName, email: parentEmail, role: 'parent' })
-      setShowSignup(false)
-      setSuccessMsg('download_app')
+        const status = await linkToPlayer()
+        setLinkStatus(status)
+        setParentUser({ id: authData.user.id, name: parentName.trim(), email: parentEmail, role: 'parent' })
+        setShowSignup(false)
+        setSuccessMsg('download_app')
+      } else {
+        // Email confirmation is on (the normal case): no session until they confirm
+        setShowSignup(false)
+        setShowLogin(true)
+        setSuccessMsg('Check your email (and your spam folder) to confirm your account. Then come back to this page and sign in to finish linking to ' + (player?.user?.name?.split(' ')[0] ?? 'your player') + '.')
+      }
     } catch (e: any) {
       setAuthError(e.message)
     } finally {
@@ -171,15 +181,33 @@ export default function ParentView({ params }: { params: Promise<{ token: string
       })
       if (error) throw error
 
-      // Link to player if not already linked
-      if (player) {
-        await supabase.from('player_parents').upsert({
-          player_id: player.id,
-          parent_user_id: data.user.id,
-        }, { onConflict: 'player_id,parent_user_id', ignoreDuplicates: true })
+      // Make sure a profile row exists (it is created at the first sign-in after email confirmation)
+      let userData: any = (await supabase.from('users').select('*').eq('id', data.user.id).maybeSingle()).data
+      let createdNow = false
+      if (!userData) {
+        const metaName = String(data.user.user_metadata?.name ?? '').trim()
+        const { error: createError } = await supabase.from('users').insert({
+          id: data.user.id,
+          email: data.user.email,
+          name: metaName || (data.user.email ?? 'Parent'),
+          role: 'parent',
+        })
+        if (createError) throw createError
+        userData = (await supabase.from('users').select('*').eq('id', data.user.id).maybeSingle()).data
+        createdNow = true
       }
 
-      const { data: userData } = await supabase.from('users').select('*').eq('id', data.user.id).single()
+      // Link to the player (starts as pending until the player approves it)
+      if (userData?.role === 'parent' && player) {
+        const status = await linkToPlayer()
+        setLinkStatus(status)
+        if (createdNow) {
+          setSuccessMsg('download_app')
+        } else if (status === 'pending') {
+          setSuccessMsg('Your request to link to ' + (player?.user?.name?.split(' ')[0] ?? 'your player') + ' is waiting for their approval in the app.')
+        }
+      }
+
       setParentUser(userData)
       setShowLogin(false)
     } catch (e: any) {
@@ -319,9 +347,9 @@ export default function ParentView({ params }: { params: Promise<{ token: string
         {successMsg === 'download_app' && (
           <div style={{ backgroundColor: '#042C53', borderRadius: 12, padding: 20, marginBottom: 20, textAlign: 'center' }}>
             <div style={{ fontSize: 22, marginBottom: 8 }}>🎉</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 6 }}>Account Created!</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 6 }}>{linkStatus === 'approved' ? 'You are linked!' : 'Account Created!'}</div>
             <div style={{ fontSize: 13, color: 'rgba(181,212,244,0.9)', marginBottom: 16, lineHeight: 1.5 }}>
-              Download the Diamond IQ Baseball app to manage {player?.user?.name ?? 'your player'}'s profile, log games, and help promote their recruiting profile.
+              {linkStatus === 'approved' ? '' : 'Your request to link to ' + (player?.user?.name ?? 'your player') + ' was sent. They need to approve it in the app (under Alerts). '}Download the Diamond IQ Baseball app to manage {player?.user?.name ?? 'your player'}'s profile, log games, and help promote their recruiting profile.
             </div>
             <a href="https://apps.apple.com/app/diamond-iq-baseball/id6765897916" 
                style={{ display: 'inline-block', backgroundColor: '#C9A227', color: '#042C53', 
