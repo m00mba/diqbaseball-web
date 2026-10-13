@@ -343,9 +343,13 @@ ${metrics}
 ${selectedSession.notes ? `\nCoach notes: ${selectedSession.notes}` : ''}`
 
     try {
+      const { data: analyzeSession } = await supabase.auth.getSession() // analyze-auth-lock
       const response = await fetch('/api/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${analyzeSession.session?.access_token ?? ''}`,
+        },
         body: JSON.stringify({
           messages: [{ role: 'user', content: prompt }]
         })
