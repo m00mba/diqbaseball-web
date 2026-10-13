@@ -1,5 +1,7 @@
+// admin-auth-lock
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '../admin-auth'
 
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,14 +9,14 @@ const adminClient = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 )
 
-const ADMIN_EMAILS = ['kelly@destroyersbaseball.org', 'kelly@iqbio.io']
-
 export async function POST(req: NextRequest) {
-  try {
-    const { facilityId, verified, adminEmail } = await req.json()
+  const admin = await requireAdmin(req)
+  if (!admin.ok) return admin.response
 
-    if (!ADMIN_EMAILS.includes(adminEmail?.toLowerCase())) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+  try {
+    const { facilityId, verified } = await req.json()
+    if (!facilityId || typeof verified !== 'boolean') {
+      return NextResponse.json({ error: 'facilityId and verified (true/false) required' }, { status: 400 })
     }
 
     const { error } = await adminClient

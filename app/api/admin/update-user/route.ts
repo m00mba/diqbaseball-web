@@ -1,5 +1,7 @@
+// admin-auth-lock
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '../admin-auth'
 
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,6 +10,9 @@ const adminClient = createClient(
 )
 
 export async function POST(req: NextRequest) {
+  const admin = await requireAdmin(req)
+  if (!admin.ok) return admin.response
+
   try {
     const { userId, name, email, password, role } = await req.json()
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })

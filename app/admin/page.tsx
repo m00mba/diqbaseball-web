@@ -4,6 +4,13 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import styles from './admin.module.css'
 
+// admin-auth-lock: every admin API call carries the signed-in admin's login token
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token ?? ''
+  return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+}
+
 const ADMIN_EMAILS = ['kelly@destroyersbaseball.org', 'kelly@iqbio.io']
 
 type Tab = 'users' | 'facilities' | 'create'
@@ -150,7 +157,7 @@ export default function AdminPortal() {
     try {
       const res = await fetch('/api/admin/update-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({
           userId: setPasswordUser.id,
           password: newPassword,
@@ -189,7 +196,7 @@ export default function AdminPortal() {
     try {
       const res = await fetch('/api/admin/update-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({
           userId: editingUser.id,
           name: editName,
@@ -215,7 +222,7 @@ export default function AdminPortal() {
     try {
       const res = await fetch('/api/admin/reset-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({ email }),
       })
       const data = await res.json()
@@ -234,7 +241,7 @@ export default function AdminPortal() {
     try {
       const res = await fetch('/api/admin/delete-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({ userId }),
       })
       const data = await res.json()
@@ -253,7 +260,7 @@ export default function AdminPortal() {
     try {
       const res = await fetch('/api/admin/toggle-facility-verified', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({
           facilityId: facility.id,
           verified: !facility.verified,
@@ -291,7 +298,7 @@ export default function AdminPortal() {
     try {
       const res = await fetch('/api/admin/create-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({
           name: createName.trim(),
           email: createEmail.trim().toLowerCase(),
